@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project basedir="." default="install" name="glacier-ant-bagit-install">
+   
+   <!-- load properties - we need the path to the Maven executable mvn -->
+   <property file="build.properties"/>
+   
+   <property name="bagit" value="bagit-4.3-bin.zip"/>
+   <property name="bagit-uri" value="http://downloads.sourceforge.net/project/loc-xferutils/loc-bil-java-library/4.3/${bagit}"/>
+   <property name="bagit-md5" value="60b3b741da5db4ba203f3071961ff1a5"/>
+   
+   <property name="glacier-cli" value="glacier-cli.zip"/>
+   <property name="glacier-cli-path" value="pbinkley-glacier-cli-f6c411a"/>
+   <property name="glacier-cli-uri" value="https://github.com/pbinkley/glacier-cli/zipball/glacier-ant-bagit-v0.1"/>
+   <property name="glacier-cli-md5" value="81080917b05b78ce9f75d8636a6994b2"/>
+   
+   <property name="ant-contrib" value="ant-contrib-1.0b3-bin.zip"/>
+   <property name="ant-contrib-uri" value="http://downloads.sourceforge.net/project/ant-contrib/ant-contrib/1.0b3/${ant-contrib}"/>
+   <property name="ant-contrib-md5" value="c5a75fc28cbc52f09bd43b5506978601"/>
+   
+   
+   
+   <target name="install">
+      <mkdir dir="lib"/>
+      <mkdir dir="dependencies"/>
+      
+      <copy file="config/bag.classworlds.conf" todir="lib"/>
+      
+      <!-- fetch dependencies and install -->
+      
+      <!-- get bagit -->
+      <get
+         src="${bagit-uri}"
+         dest="dependencies" usetimestamp="true"/>
+      <condition property="bagit-ok">
+         <checksum file="dependencies/${bagit}" property="${bagit-md5}"/>
+      </condition>
+      <fail unless="bagit-ok" message="dependencies/${bagit} checksum is not correct"/>
+      <mkdir dir="dependencies/bagit"/>
+      <unzip src="dependencies/${bagit}" dest="dependencies/bagit"/>
+      <copy todir="lib" overwrite="true">
+         <fileset dir="dependencies/bagit/bagit-4.3/lib" includes="*.jar"/>
+      </copy>
+      
+      <!-- ant-contrib package - needed for foreach etc. -->
+      
+      <mkdir dir="dependencies/ant-contrib"/>
+      <get
+         src="${ant-contrib-uri}"
+         dest="dependencies/${ant-contrib}" usetimestamp="true"/>
+      <condition property="ant-contrib-ok">
+         <checksum file="dependencies/${ant-contrib}" property="${ant-contrib-md5}"/>
+      </condition>
+      <fail unless="ant-contrib-ok" message="dependencies/${ant-contrib} checksum is not correct"/>
+      <unzip src="dependencies/${ant-contrib}" dest="dependencies/ant-contrib"/>
+      <copy todir="lib">
+         <fileset dir="dependencies/ant-contrib/ant-contrib" includes="ant-contrib-1.0b3.jar"/>
+         <!-- note: we aren't copying jars from ant-contrib's lib directory since either bagit copied more recent versions or they aren't needed by our tasks -->
+      </copy>
+      
+      <!-- get glacier-cli -->
+      
+      <mkdir dir="dependencies/glacier-cli"/>
+      <get
+         src="${glacier-cli-uri}"
+         dest="dependencies/${glacier-cli}"/>
+      <condition property="glacier-cli-ok">
+         <checksum file="dependencies/${glacier-cli}" property="${glacier-cli-md5}"/>
+      </condition>
+      <fail unless="glacier-cli-ok" message="dependencies/${glacier-cli} checksum is not correct"/>
+      <unzip src="dependencies/${glacier-cli}" dest="dependencies/glacier-cli"/>
+      <exec executable="${mvn}" dir="dependencies/glacier-cli/${glacier-cli-path}">
+         <arg value="clean"/>
+         <arg value="package"/>
+      </exec>
+      <copy todir="lib">
+         <fileset dir="dependencies/glacier-cli/${glacier-cli-path}/target" includes="glacier-1.0-jar-with-dependencies.jar"/>
+      </copy>
+   </target>
+</project>

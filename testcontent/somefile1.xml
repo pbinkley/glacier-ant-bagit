@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project default="retrieve">
+   
+   <!-- normally set 
+      -Ddir.bag=<path to directory containing content to be bagged>
+      
+      note that if dir.bag does not contain a directory called data, all of its content will be moved into a directory called data by bagit
+      
+      optionally set
+      -Dtarfile=<path and filename for tar file to be created from bag>
+      
+      -->
+   
+   <property name="dir.logs.jobs" location="logs"/>
+   <property name="dir.logs.uploads" location="upload-logs"/>
+   <property name="dir.bag" location="testbag"/>
+   <property name="dir.temp" location="temp"/>
+   <property name="tarfile" value="${dir.temp}/bag.tar"/>
+   
+   <property file="build.properties"/>
+   
+   <!-- add the jars in the lib directory to the classpath -->
+   <path id="main.classpath">
+      <fileset dir="lib">
+         <include name="**/*.jar"/>
+      </fileset>
+      <pathelement path="${java.class.path}"/>
+   </path>
+
+   <!-- check that all the extra tasks are available; fail with a message if any are missing -->
+   <available resource="net/sf/antcontrib/antlib.xml" property="available.antcontrib"
+      classpathref="main.classpath"/>
+   <fail unless="available.antcontrib">**************** Can't find antcontrib</fail>
+
+   <!-- declare extra tasks -->
+   <taskdef resource="net/sf/antcontrib/antlib.xml" classpathref="main.classpath"/>
+   
+   <target name="init">
+      <mkdir dir="${dir.logs.jobs}"/>
+      <mkdir dir="${dir.logs.uploads}"/>
+      <mkdir dir="${dir.bag}"/>
+      <mkdir dir="${dir.temp}"/>
+      <mkdir dir="lib"/>
+      <mkdir dir="dependencies"/>
+      <tstamp>
+         <format property="run.tstamp" pattern="yyyy-MM-dd'T'HH-mm-ssZ"/>
+         <format property="day.tstamp" pattern="yyyy-MM-dd"/>
+         <!-- timestamp suitable for use as unique filename for this run -->
+         <format property="filename.tstamp" pattern="yyyy-MM-dd-HH-mm-ss-SSS"/>
+         <format property="run.path" pattern="yyyy/MM/dd/HH-mm-ss-SSS"/>
+      </tstamp> 
+   </target>
+   
+   <target name="run" depends="init">
+      <antcall target="bagit-create" inheritall="true">
+         <param name="dir.bag" value="${dir.run}/bag"/>
+      </antcall>
+      
+   </target>
+   
+   
+   <!-- bagit targets: directory level -->
+   
+   <target name="bagit-create" depends="init">
+      
+      <property name="logfile" value="${dir.logs.jobs}/bagit-create-${filename.tstamp}.log"/>
+      
+      <property name="bag.command" value="baginplace"/>
+      <!-- remove evil .DS_Store and Thumbs.db files -->
+      <delete dir="${dir.bag}" includes="**/.DS_Store,**/Thumbs.db" defaultexcludes="no"/>
+      
+      <!-- note: attribute "inputstring=''" is necessary, otherwise it will hang waiting for input when running in background -->
+      <java classpath="./lib/classworlds-1.1.jar" classname="org.codehaus.classworlds.Launcher"
+         maxmemory="512m" fork="true" inputstring="" output="${logfile}" failonerror="true">
+         <jvmarg value="-Dclassworlds.conf=config/bag.classworlds.conf"/>
+         <jvmarg value="-Dapp.home=."/>
+         <!-- force unix line endings - needed to get same md5 hashes in output of test for bagit-create -->
+         <jvmarg value="-Dline.separator=&#10;"/>
+         <!--<jvmarg value="-Dlog_file=${logshome}/processing/bagit-${dirname}.log"/>-->
+         <arg value="${bag.command}"/>
+         <arg value="${dir.bag}"/>
+         
+         <arg value="--log-verbose"/>
+         <arg value="--verbose"/>
+      </java>
+      
+   </target>
+   
+   <target name="bagit-verify" depends="init">
+      <property name="logfile" value="${dir.logs.jobs}/bagit-verify-${filename.tstamp}.log"/>
+      <echo>Logfile: ${logfile}</echo>
+      
+      <!-- note: attribute "inputstring=''" is necessary, otherwise it will hang waiting for input when running in background -->
+      <java classpath="./lib/classworlds-1.1.jar" classname="org.codehaus.classworlds.Launcher"
+         maxmemory="512m" fork="true" failonerror="true" inputstring=""
+         output="${logfile}">
+         <jvmarg value="-Dclassworlds.conf=config/bag.classworlds.conf"/>
+         <jvmarg value="-Dapp.home=."/>
+         <arg value="verifyvalid"/>
+         <arg value="${dir.bag}"/>
+         <arg value="--noresultfile"/>
+         <arg value="--log-verbose"/>
+         <arg value="--verbose"/>
+      </java>
+   </target>
+   
+   <target name="tar" depends="init">
+      <tar basedir="${dir.bag}" destfile="${tarfile}">
+         <include name="**/*"/>
+      </tar>
+   </target>
+   
+   <target name="glacier-upload" depends="init">
+      <property name="logfile" value="${dir.logs.jobs}/glacier-upload-${filename.tstamp}.log"/>
+      <echo>Logfile: ${logfile}</echo>
+      
+      <checksum file="${tarfile}" property="file.md5"/>
+      <length file="${tarfile}" property="file.length"/>
+      
+      <tstamp>
+         <format property="start.tstamp" pattern="yyyy-MM-dd'T'HH-mm-ssZ"/>
+      </tstamp>
+      <java jar="lib/glacier-1.0-jar-with-dependencies.jar" fork="true" failonerror="true" inputstring="" output="${logfile}" 
+         outputproperty="glacier-cli.output">
+         <arg value="-region"/>
+         <arg value="${aws.region}"/>
+         <arg value="upload"/>
+         <arg value="${aws.vaultName}"/>
+         <arg value="${tarfile}"/>
+      </java>
+      <tstamp>
+         <format property="end.tstamp" pattern="yyyy-MM-dd'T'HH-mm-ssZ"/>
+      </tstamp>
+      
+      <propertyregex property="filename" input="${glacier-cli.output}" regexp=".*Uploaded\ (.*)\:\ (.*)" select="\1"/>
+      <propertyregex property="archiveID" input="${glacier-cli.output}" regexp=".*Uploaded\ (.*)\:\ (.*)" select="\2"/>
+      
+      <echo message="filename: ${filename}"/>
+      <echo message="Archive ID: ${archiveID}"/>
+      <!-- 
+Success: 
+
+     [echo] Uploading /Users/peterbinkley/data/glacier/temp/bag.tar to Glacier vault test
+     [echo] Uploaded /Users/peterbinkley/data/glacier/temp/bag.tar: 4DQ9SuIpnrYcN2LuC09YoP996mgDFrUb78LhAkZYDGz0DH3XL5qJ1TgAGEQgIHJBcp_34NA3sZdWvY8z_GDQkT85TmAK0rsz-mOuw3vD7NHeJT52cnN-99aNzDwI1AQPfGjjWPCUWA
+
+Failure (bad accessKey):
+
+     [java] Uploading /Users/peterbinkley/data/glacier/temp/bag.tar to Glacier vault test
+     [java] Exception in thread "main" java.lang.RuntimeException: Error Uploading /Users/peterbinkley/data/glacier/temp/bag.tar to Glacier vault test
+     [java] 	at org.csanchez.aws.glacier.Glacier.upload(Glacier.java:177)
+     [java] 	at org.csanchez.aws.glacier.Glacier.main(Glacier.java:121)
+     [java] Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: 0UyI5KLmSyCxS0sYLkHxrzS7qgRRqQqMelBzeNYU0qc5RQQ, AWS Error Code: UnrecognizedClientException, AWS Error Message: The security token included in the request is invalid.
+     [java] 	at com.amazonaws.http.AmazonHttpClient.handleErrorResponse(AmazonHttpClient.java:583)
+     [java] 	at com.amazonaws.http.AmazonHttpClient.executeHelper(AmazonHttpClient.java:317)
+     [java] 	at com.amazonaws.http.AmazonHttpClient.execute(AmazonHttpClient.java:167)
+     [java] 	at com.amazonaws.services.glacier.AmazonGlacierClient.invoke(AmazonGlacierClient.java:1949)
+     [java] 	at com.amazonaws.services.glacier.AmazonGlacierClient.uploadArchive(AmazonGlacierClient.java:1291)
+     [java] 	at com.amazonaws.services.glacier.transfer.ArchiveTransferManager.uploadInSinglePart(ArchiveTransferManager.java:442)
+     [java] 	at com.amazonaws.services.glacier.transfer.ArchiveTransferManager.upload(ArchiveTransferManager.java:216)
+     [java] 	at com.amazonaws.services.glacier.transfer.ArchiveTransferManager.upload(ArchiveTransferManager.java:175)
+     [java] 	at org.csanchez.aws.glacier.Glacier.upload(Glacier.java:174)
+     [java] 	... 1 more
+
+BUILD FAILED
+/Users/peterbinkley/data/glacier/build.xml:103: Java returned: 1
+
+
+-->
+      
+      <!-- write to csv -->
+      <!-- fields: timestamp, file name, file length, checksum, region, vault, archive ID, start time, end time -->
+      <echo file="${dir.log.uploads}/glacier-log-${aws.region}-${aws.vaultName}.csv" append="true" 
+      message='${run.tstamp},"${filename}",${file.length},${file.md5},${aws.region},${aws.vaultName},${archiveID},${start.tstamp},${end.tstamp}${line.separator}'/>
+   </target>
+
+</project>
