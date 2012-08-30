@@ -58,7 +58,8 @@
       <echo>
          Job ${run.tstamp}
          
-         Source:    ${dir.bag}
+         Source:    ${dir.source}
+         Bag:       ${dir.bag}
          File name: ${tarfile}
          Region:    ${aws.region}
          Vault:     ${aws.vaultName}
