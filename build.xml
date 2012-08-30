@@ -72,8 +72,10 @@
       
       <antcall target="bagit-create" inheritall="true"/>
       <antcall target="bagit-verify" inheritall="true"/>
+      <antcall target="copy-manifest" inheritall="true"/>
       <antcall target="tar" inheritall="true"/>
       <antcall target="glacier-upload" inheritall="true"/>
+      <antcall target="cleanup" inheritall="true"/>
    </target>
    
    <target name="test" depends="init">
@@ -100,6 +102,7 @@
       <antcall target="copy-manifest" inheritall="true"/>
       <antcall target="tar" inheritall="true"/>
       <antcall target="glacier-upload" inheritall="true"/>
+      <antcall target="cleanup" inheritall="true"/>
    </target>
    
    <!-- bagit targets: directory level -->
@@ -223,4 +226,7 @@ BUILD FAILED
       message='${run.tstamp},"${dir.bag}","${filename}",${file.length},${file.sha256},${aws.region},${aws.vaultName},${archiveID},${start.tstamp},${end.tstamp}${line.separator}'/>
    </target>
 
+   <target name="cleanup" depends="init" unless="noclean">
+      <delete dir="temp"/>
+   </target>
 </project>
