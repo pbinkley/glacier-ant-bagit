@@ -145,7 +145,7 @@
    </target>
    
    <target name="copy-manifest" depends="init">
-      <propertyregex property="manifestfile" input="${dir.source}-${filename.tstamp}.txt" regexp="\${file.separator}" replace="_" global="true"/>
+      <propertyregex property="manifestfile" input="${dir.source}_${aws.region}_${aws.vaultName}_${filename.tstamp}.txt" regexp="\${file.separator}" replace="_" global="true"/>
       <echo>Manifest: ${manifestfile}</echo>
       <copy tofile="${dir.manifests}/${manifestfile}">
          <fileset dir="${dir.bag}" includes="manifest-md5.txt"/>

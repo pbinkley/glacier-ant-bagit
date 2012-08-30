@@ -67,5 +67,5 @@ Subsequent runs will append to the appropriate CSV file.
 
 The Bagit manifest is copied into the "manifests" directory with a name that combines a sanitized
 version of the source directory path (with separators replaced by underscores) plus
-the timestamp of the job run. This provides a record of all the files in the bag,
+the region, vault and timestamp of the job run. This provides a record of all the files in the bag,
 with their md5 hashes.
