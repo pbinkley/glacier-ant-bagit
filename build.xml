@@ -224,7 +224,7 @@ BUILD FAILED
       <!-- write to csv -->
       <!-- fields: timestamp, directory name, file name, file length, checksum, region, vault, archive ID, start time, end time -->
       <echo file="${dir.logs.uploads}/glacier-log-${aws.region}-${aws.vaultName}.csv" append="true" 
-      message='${run.tstamp},"${dir.bag}","${filename}",${file.length},${file.sha256},${aws.region},${aws.vaultName},${archiveID},${start.tstamp},${end.tstamp}${line.separator}'/>
+      message='${run.tstamp},"${dir.source}","${filename}",${file.length},${file.sha256},${aws.region},${aws.vaultName},${archiveID},${start.tstamp},${end.tstamp}${line.separator}'/>
    </target>
 
    <target name="cleanup" depends="init" unless="noclean">
