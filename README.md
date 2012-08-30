@@ -61,7 +61,7 @@ The script will show you what it is going to do, and give you 15 seconds to hit 
 The various tasks will write log files into the logs directories. A CSV file of all uploads will be created in the upload-logs directory (one CSV for each 
 region/vault pair). The CSV fields are:
 
-timestamp, directory name, file name, file length, checksum, region, vault, archive ID, start time, end time
+timestamp, directory name, file name, file length, SHA-256 checksum, region, vault, archive ID, start time, end time
 
 
 Subsequent runs will append to the appropriate CSV file.

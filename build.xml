@@ -149,7 +149,7 @@
       <property name="logfile" value="${dir.logs.jobs}/glacier-upload-${filename.tstamp}.log"/>
       <echo>Logfile: ${logfile}</echo>
       
-      <checksum file="${tarfile}" property="file.md5"/>
+      <checksum file="${tarfile}" property="file.sha256" algorithm="SHA-256"/>
       <length file="${tarfile}" property="file.length"/>
       
       <tstamp>
@@ -206,7 +206,7 @@ BUILD FAILED
       <!-- write to csv -->
       <!-- fields: timestamp, directory name, file name, file length, checksum, region, vault, archive ID, start time, end time -->
       <echo file="${dir.logs.uploads}/glacier-log-${aws.region}-${aws.vaultName}.csv" append="true" 
-      message='${run.tstamp},"${bag.dir}","${filename}",${file.length},${file.md5},${aws.region},${aws.vaultName},${archiveID},${start.tstamp},${end.tstamp}${line.separator}'/>
+      message='${run.tstamp},"${bag.dir}","${filename}",${file.length},${file.sha256},${aws.region},${aws.vaultName},${archiveID},${start.tstamp},${end.tstamp}${line.separator}'/>
    </target>
 
 </project>
