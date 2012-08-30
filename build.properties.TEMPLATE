@@ -1,2 +1,3 @@
 aws.vaultName=test
 aws.region=us-west-2
+mvn=/usr/bin/mvn
