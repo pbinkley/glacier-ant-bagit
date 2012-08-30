@@ -63,5 +63,9 @@ region/vault pair). The CSV fields are:
 
 timestamp, directory name, file name, file length, SHA-256 checksum, region, vault, archive ID, start time, end time
 
-
 Subsequent runs will append to the appropriate CSV file.
+
+The Bagit manifest is copied into the "manifests" directory with a name that combines a sanitized
+version of the source directory path (with separators replaced by underscores) plus
+the region, vault and timestamp of the job run. This provides a record of all the files in the bag,
+with their md5 hashes.

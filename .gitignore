@@ -6,3 +6,4 @@ dependencies
 logs
 temp
 upload-logs
+manifests
