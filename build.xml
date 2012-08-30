@@ -169,7 +169,7 @@
       <checksum file="${tarfile}" property="file.sha256" algorithm="SHA-256"/>
       <length file="${tarfile}" property="file.length"/>
 
-      <echo message="Filename: ${filename}"/>
+      <echo message="Filename: ${tarfile}"/>
       <echo message="File size: ${file.length}"/>
       
       <tstamp>
