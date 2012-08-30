@@ -168,6 +168,9 @@
       
       <checksum file="${tarfile}" property="file.sha256" algorithm="SHA-256"/>
       <length file="${tarfile}" property="file.length"/>
+
+      <echo message="Filename: ${filename}"/>
+      <echo message="File size: ${file.length}"/>
       
       <tstamp>
          <format property="start.tstamp" pattern="yyyy-MM-dd'T'HH-mm-ssZ"/>
@@ -187,8 +190,6 @@
       <propertyregex property="filename" input="${glacier-cli.output}" regexp=".*Uploaded\ (.*)\:\ (.*)" select="\1"/>
       <propertyregex property="archiveID" input="${glacier-cli.output}" regexp=".*Uploaded\ (.*)\:\ (.*)" select="\2"/>
       
-      <echo message="Filename: ${filename}"/>
-      <echo message="File size: ${file.length}"/>
       <echo message="Archive ID: ${archiveID}"/>
       <!-- 
 Success: 
