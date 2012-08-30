@@ -10,6 +10,8 @@ specification for creating, managing and verifying manifests of groups of files.
 Since Glacier is intended for long term preservation, it makes sense to 
 package the files in a self-verifying wrapper before uploading them.
 
+For background see [my blog](http://www.wallandbinkley.com/quaedam/2012/08_29_getting-serious-with-amazon-glacier.html).
+
 ## Platform
 
 Developed and tested on OS/X Mountain Lion so far. I'll be testing on Ubuntu 
