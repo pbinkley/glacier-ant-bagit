@@ -69,13 +69,13 @@
       <sleep seconds="15"/>
       
       
+      <antcall target="cleanup" inheritall="true"/>
       
       <antcall target="bagit-create" inheritall="true"/>
       <antcall target="bagit-verify" inheritall="true"/>
       <antcall target="copy-manifest" inheritall="true"/>
       <antcall target="tar" inheritall="true"/>
       <antcall target="glacier-upload" inheritall="true"/>
-      <antcall target="cleanup" inheritall="true"/>
    </target>
    
    <target name="test" depends="init">
@@ -97,12 +97,12 @@
       </echo>
       <sleep seconds="15"/>
       
+      <antcall target="cleanup" inheritall="true"/>
       <antcall target="bagit-create" inheritall="true"/>
       <antcall target="bagit-verify" inheritall="true"/>
       <antcall target="copy-manifest" inheritall="true"/>
       <antcall target="tar" inheritall="true"/>
       <antcall target="glacier-upload" inheritall="true"/>
-      <antcall target="cleanup" inheritall="true"/>
    </target>
    
    <!-- bagit targets: directory level -->
@@ -229,5 +229,6 @@ BUILD FAILED
 
    <target name="cleanup" depends="init" unless="noclean">
       <delete dir="temp"/>
+	<mkdir dir="temp"/>
    </target>
 </project>
