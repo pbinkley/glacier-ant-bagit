@@ -7,7 +7,7 @@
    <target name="db.add-directory">
       <property name="path" value="${basedir}"/>
 
-      <exec outputproperty="rawsize" executable="du">
+      <exec outputproperty="rawsize" executable="${du}">
          <arg value="-ks"/>
          <arg value="${path}"/>
       </exec>
@@ -24,7 +24,7 @@
          <arg value="{}"/>
          <arg value=";"/>
       </exec>
-      <exec outputproperty="directory_hash" executable="/Volumes/Macintosh HD/sbin/md5">
+      <exec outputproperty="directory_hash" executable="${md5}">
          <arg value="-q"/>
          <arg value="${dir.temp}/directory.txt"/>
       </exec>
