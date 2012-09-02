@@ -7,7 +7,7 @@
 #
 # Host: localhost (MySQL 5.5.25a)
 # Database: glacier-test
-# Generation Time: 2012-09-02 16:19:57 +0000
+# Generation Time: 2012-09-02 17:25:38 +0000
 # ************************************************************
 
 
@@ -47,10 +47,12 @@ CREATE TABLE `bags` (
   `directory_id` int(10) unsigned NOT NULL,
   `directory_hash` varchar(64) NOT NULL DEFAULT '',
   `manifest` varchar(200) NOT NULL DEFAULT '',
-  `filename` varchar(200) NOT NULL DEFAULT '',
+  `file_name` varchar(200) NOT NULL DEFAULT '',
+  `file_hash` varchar(64) NOT NULL DEFAULT '',
+  `file_size` bigint(11) unsigned NOT NULL,
   `created` datetime NOT NULL,
-  `size` bigint(11) unsigned NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `directory_id` (`directory_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
@@ -62,7 +64,7 @@ CREATE TABLE `directories` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `path` varchar(200) NOT NULL DEFAULT '',
   `size` bigint(20) unsigned NOT NULL,
-  `directory_hash` varchar(32) NOT NULL DEFAULT '',
+  `directory_hash` varchar(64) NOT NULL DEFAULT '',
   `added` datetime NOT NULL,
   `updated` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),

@@ -73,6 +73,7 @@
       <antcall target="bagit-verify" inheritall="true"/>
       <antcall target="copy-manifest" inheritall="true"/>
       <antcall target="tar" inheritall="true"/>
+      <antcall target="register-bag" inheritall="true"/>
       <antcall target="glacier-upload" inheritall="true"/>
    </target>
    
@@ -100,6 +101,7 @@
       <antcall target="bagit-verify" inheritall="true"/>
       <antcall target="copy-manifest" inheritall="true"/>
       <antcall target="tar" inheritall="true"/>
+      <antcall target="register-bag" inheritall="true"/>
       <antcall target="glacier-upload" inheritall="true"/>
    </target>
    
@@ -160,7 +162,70 @@
       </tar>
    </target>
    
-   <target name="glacier-upload" depends="init">
+   <target name="register-bag" depends="init" unless="no-register">
+      <!-- update tracking db:
+         
+         - create new row in bags table
+            - use $dir.source to get directory_id
+            - calculate manifest file name, size and hash of directory, size and hash of tar file
+            
+      
+      -->
+      <propertyregex property="manifestfile" input="${dir.source}_${aws.region}_${aws.vaultName}_${filename.tstamp}.txt" regexp="\${file.separator}" replace="_" global="true"/>
+      
+      <exec outputproperty="rawsize" executable="${du}">
+         <arg value="-ks"/>
+         <arg value="${dir.source}"/>
+      </exec>
+      <propertyregex property="dir.size" input="${rawsize}" regexp="(\d*).*" select="\1"/>
+      
+      <exec output="${dir.temp}/directory.txt" executable="find">
+         <!--  find temp -type f -exec ls -lT {} \; -->
+         <arg value="${dir.source}"/>
+         <arg value="-type"/>
+         <arg value="f"/>
+         <arg value="-exec"/>
+         <arg value="/bin/ls"/>
+         <arg value="-lT"/>
+         <arg value="{}"/>
+         <arg value=";"/>
+      </exec>
+      <checksum file="${dir.temp}/directory.txt" property="dir.sha256" algorithm="SHA-256"/>
+      
+      <checksum file="${tarfile}" property="file.sha256" algorithm="SHA-256"/>
+      <length file="${tarfile}" property="file.length"/>
+      
+      <!-- insert directory, in case it doesn't already exist; if it does, update it and get its id -->
+      
+      <sql driver="${db.driver}" url="${db.url}" userid="${db.user}" password="${db.password}"
+         onerror="stop" print="true" errorproperty="sql-error"  classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar"
+         showheaders="false">         insert into directories
+         (path, size, directory_hash, added)
+         values ("${dir.source}", ${dir.size}, "${dir.sha256}", NOW())
+         on duplicate key update
+         id=LAST_INSERT_ID(id),
+         size=VALUES(size),
+         directory_hash=VALUES(directory_hash),
+         updated=NOW();
+         
+         insert into bags
+         (directory_id, directory_hash, manifest, file_name, file_size, file_hash, created)
+         values (
+         LAST_INSERT_ID(),
+         "${dir.sha256}",
+         "${manifestfile}",
+         "${tarfile}",
+         ${file.length},
+         "${file.sha256}",
+         NOW()
+         );
+      </sql>
+      <echo>Error? ${sql-error}</echo>
+      
+   </target>
+   
+   
+   <target name="glacier-upload" depends="init" unless="no-upload">
       <property name="logfile" value="${dir.logs.jobs}/glacier-upload-${filename.tstamp}.log"/>
       <echo>Logfile: ${logfile}</echo>
       
@@ -244,6 +309,7 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       <!-- fields: timestamp, directory name, file name, file length, checksum, region, vault, archive ID, start time, end time -->
       <echo file="${dir.logs.uploads}/glacier-log-${aws.region}-${aws.vaultName}.csv" append="true" 
       message='${run.tstamp},"${dir.source}","${filename}",${file.length},${file.sha256},${aws.region},${aws.vaultName},${archiveID},${start.tstamp},${end.tstamp}${line.separator}'/>
+      
    </target>
 
    <target name="cleanup" depends="init" unless="noclean">
