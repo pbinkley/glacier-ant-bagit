@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project basedir="." default="dist" name="ANTProject">
+ <target name="dist">
+  
+ </target> 
+   
+   <target name="db.add-directory">
+      <property name="path" value="${basedir}"/>
+
+      <exec outputproperty="rawsize" executable="du">
+         <arg value="-ks"/>
+         <arg value="${path}"/>
+      </exec>
+      <propertyregex property="size" input="${rawsize}" regexp="(\d*).*" select="\1"/>
+
+      <exec output="${dir.temp}/directory.txt" executable="find">
+       <!--  find temp -type f -exec ls -lT {} \; -->
+         <arg value="${path}"/>
+         <arg value="-type"/>
+         <arg value="f"/>
+         <arg value="-exec"/>
+         <arg value="/bin/ls"/>
+         <arg value="-lT"/>
+         <arg value="{}"/>
+         <arg value=";"/>
+      </exec>
+      <exec outputproperty="directory_hash" executable="/Volumes/Macintosh HD/sbin/md5">
+         <arg value="-q"/>
+         <arg value="${dir.temp}/directory.txt"/>
+      </exec>
+      <echo>path: ${path}</echo>
+      <echo>size: ${size}</echo>
+      <echo>directory_hash: ${directory_hash}</echo>
+      
+      <property name="sql">
+         insert into directories
+         (path, size, directory_hash, added)
+         values ("${path}", ${size}, "${directory_hash}", NOW())
+         on duplicate key update 
+         size=VALUES(size),
+         directory_hash=VALUES(directory_hash),
+         updated=NOW();
+      </property>
+      <echo message="${sql}"/>
+      
+      <sql driver="${db.driver}" url="${db.url}" userid="${db.user}" password="${db.password}"
+         onerror="stop" print="true" errorproperty="sql-error"  classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar"
+         showheaders="false">${sql}
+      </sql>
+      <echo>Error? ${sql-error}</echo>
+   </target>
+   
+</project>

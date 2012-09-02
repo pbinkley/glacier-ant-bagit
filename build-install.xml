@@ -17,7 +17,9 @@
    <property name="ant-contrib-uri" value="http://downloads.sourceforge.net/project/ant-contrib/ant-contrib/1.0b3/${ant-contrib}"/>
    <property name="ant-contrib-md5" value="c5a75fc28cbc52f09bd43b5506978601"/>
    
-   
+   <property name="mysql" value="mysql-connector-java-5.1.21.tar.gz"/>
+   <property name="mysql-uri" value="http://www.mysql.com/get/Downloads/Connector-J/${mysql}/from/http://cdn.mysql.com/"/>
+   <property name="mysql-md5" value="2957b2b452895f74d56ed2f2c1cd165d"/>
    
    <target name="install">
       <mkdir dir="lib"/>
@@ -75,5 +77,26 @@
       <copy todir="lib">
          <fileset dir="dependencies/glacier-cli/${glacier-cli-path}/target" includes="glacier-1.0-jar-with-dependencies.jar"/>
       </copy>
+      
+      <!-- get mysql driver -->
+      <mkdir dir="dependencies/mysql"/>
+      <get
+         src="${mysql-uri}"
+         dest="dependencies/${mysql}"/>
+      <condition property="mysql-ok">
+         <checksum file="dependencies/${mysql}" property="${mysql-md5}"/>
+      </condition>
+      <fail unless="mysql-ok" message="dependencies/${mysql} checksum is not correct"/>
+      <untar src="dependencies/${mysql}" dest="dependencies/mysql" compression="gzip"/>
+      <copy todir="lib">
+         <fileset dir="dependencies/mysql/mysql-connector-java-5.1.21" includes="mysql-connector-java-5.1.21-bin.jar"/>
+      </copy>
+   </target>
+   
+   <target name="db.create">
+      <sql driver="${db.driver}" url="${db.url}" userid="${db.user}" password="${db.password}"
+         onerror="abort" print="true" errorproperty="sql-error" classpath="lib/mysql-connector-java-5.1.21-bin.jar"
+         showheaders="false" src="sql/db-structure.sql"/>
+      
    </target>
 </project>

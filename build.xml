@@ -10,15 +10,14 @@
       -Dtarfile=<path and filename for tar file to be created from bag>
       
       -->
-   
    <property name="dir.logs.jobs" location="logs"/>
    <property name="dir.logs.uploads" location="upload-logs"/>
    <property name="dir.temp" location="temp"/>
    <property name="dir.manifests" location="manifests"/>
    <property name="tarfile" value="${dir.temp}/bag.tar"/>
    <property name="dir.bag" location="temp/testbag"/>
-   
-   
+   <property name="dir.lib" location="lib"/>
+
    <property file="build.properties"/>
    
    <!-- add the jars in the lib directory to the classpath -->
@@ -42,7 +41,6 @@
       <mkdir dir="${dir.logs.uploads}"/>
       <mkdir dir="${dir.temp}"/>
       <mkdir dir="${dir.manifests}"/>
-      <mkdir dir="lib"/>
       <mkdir dir="dependencies"/>
       <tstamp>
          <format property="run.tstamp" pattern="yyyy-MM-dd'T'HH-mm-ssZ"/>
@@ -218,6 +216,27 @@ Failure (bad accessKey):
 BUILD FAILED
 /Users/peterbinkley/data/glacier/build.xml:103: Java returned: 1
 
+Failure: 
+
+Uploading temp/2006-04-30.tar to Glacier vault pictures
+30-Aug-2012 2:01:03 PM org.apache.http.impl.client.DefaultRequestDirector tryExecute
+INFO: I/O exception (java.net.SocketException) caught when processing request: Connection reset
+30-Aug-2012 2:01:03 PM org.apache.http.impl.client.DefaultRequestDirector tryExecute
+INFO: Retrying request
+Exception in thread "main" java.lang.RuntimeException: Error Uploading temp/2006-04-30.tar to Glacier vault pictures
+	at org.csanchez.aws.glacier.Glacier.upload(Glacier.java:177)
+	at org.csanchez.aws.glacier.Glacier.main(Glacier.java:121)
+Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3XuWqGGVTNUfYWShkTpiuppLFVb_bipHNuc3Fxc50, AWS Error Code: InvalidSignatureException, AWS Error Message: Signature expired: 20120830T195040Z is now earlier than 20120830T195617Z (20120830T200117Z - 5 min.)
+	at com.amazonaws.http.AmazonHttpClient.handleErrorResponse(AmazonHttpClient.java:583)
+	at com.amazonaws.http.AmazonHttpClient.executeHelper(AmazonHttpClient.java:317)
+	at com.amazonaws.http.AmazonHttpClient.execute(AmazonHttpClient.java:167)
+	at com.amazonaws.services.glacier.AmazonGlacierClient.invoke(AmazonGlacierClient.java:1949)
+	at com.amazonaws.services.glacier.AmazonGlacierClient.uploadArchive(AmazonGlacierClient.java:1291)
+	at com.amazonaws.services.glacier.transfer.ArchiveTransferManager.uploadInSinglePart(ArchiveTransferManager.java:442)
+	at com.amazonaws.services.glacier.transfer.ArchiveTransferManager.upload(ArchiveTransferManager.java:216)
+	at com.amazonaws.services.glacier.transfer.ArchiveTransferManager.upload«(ArchiveTransferManager.java:175)
+	at org.csanchez.aws.glacier.Glacier.upload(Glacier.java:174)
+	... 1 more
 
 -->
       
@@ -231,4 +250,50 @@ BUILD FAILED
       <delete dir="temp"/>
 	<mkdir dir="temp"/>
    </target>
+   
+   
+   
+   <!-- MySQL tracking db -->
+   <!-- operations:
+      
+      - populate with directory paths
+      - detect directories that need to be archived, add them to the queue
+      - take a directory off the queue, bag it and upload it, with appropriate db updates
+      
+      - future work:
+         - Ruby on Rails web interface to monitor tracking db
+         - enable retrieval via tracking db retrieval queue
+      
+      -->
+   <target name="db.add-directories">
+      <!-- sql: path is unique, so insert with update -->
+      <!-- 
+         get size (in kb): du -sk temp
+         get hash of directory listing: find temp -type f -exec ls -lT {} \; | md5 | awk '{print $1;}'
+         (on Linux use md5sum)
+         (this allows us to detect changes in files added or deleted or updated)
+         -->
+      <property name="dirset" value="*"/>
+      
+      <dirset id="watch-dirset" dir="${dir.watch}">
+         <include name="${dirset}"/>
+      </dirset>
+      <resourcecount property="dirsetcount">
+         <dirset refid="watch-dirset"/>
+      </resourcecount>
+      <echo message="Directories: ${dirsetcount}"/>
+      
+      <subant inheritall="true" target="db.add-directory" genericantfile="build-subant-targets.xml">
+         <dirset refid="watch-dirset"/>
+      </subant>
+   </target>
+   
+   
+   
+   <target name="db.add-to-upload-queue">
+      <!-- add directories for which there is no bag with an active archive, or for which all bags with 
+         active archives have a different hash than the current directory_hash -->
+   </target>
+   
+   <target name="db.take-off-upload-queue"></target>
 </project>
