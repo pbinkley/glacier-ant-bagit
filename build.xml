@@ -15,7 +15,7 @@
    <property name="dir.temp" location="temp"/>
    <property name="dir.manifests" location="manifests"/>
    <property name="tarfile" value="${dir.temp}/bag.tar"/>
-   <property name="dir.bag" location="temp/testbag"/>
+   <property name="dir.bag" location="temp/bag"/>
    <property name="dir.lib" location="lib"/>
 
    <property file="build.properties"/>
@@ -160,6 +160,8 @@
       <tar basedir="${dir.bag}" destfile="${tarfile}">
          <include name="**/*"/>
       </tar>
+      <checksum file="${tarfile}" property="file.sha256" algorithm="SHA-256"/>
+      <echo>${file.sha256}</echo>
    </target>
    
    <target name="register-bag" depends="init" unless="no-register">
@@ -179,29 +181,24 @@
       </exec>
       <propertyregex property="dir.size" input="${rawsize}" regexp="(\d*).*" select="\1"/>
       
-      <exec output="${dir.temp}/directory.txt" executable="find">
-         <!--  find temp -type f -exec ls -lT {} \; -->
-         <arg value="${dir.source}"/>
-         <arg value="-type"/>
-         <arg value="f"/>
-         <arg value="-exec"/>
-         <arg value="/bin/ls"/>
-         <arg value="-lT"/>
-         <arg value="{}"/>
-         <arg value=";"/>
-      </exec>
-      <checksum file="${dir.temp}/directory.txt" property="dir.sha256" algorithm="SHA-256"/>
+      <delete dir="${dir.temp}/directory-hash"/>
+      <mkdir dir="${dir.temp}/directory-hash"/>
+      <checksum todir="${dir.temp}/directory-hash" totalproperty="dir.md5" algorithm="md5">
+         <fileset dir="${dir.source}" includes="**/*"/>
+      </checksum>
       
       <checksum file="${tarfile}" property="file.sha256" algorithm="SHA-256"/>
+      <echo>${file.sha256}</echo>
       <length file="${tarfile}" property="file.length"/>
       
       <!-- insert directory, in case it doesn't already exist; if it does, update it and get its id -->
       
       <sql driver="${db.driver}" url="${db.url}" userid="${db.user}" password="${db.password}"
          onerror="stop" print="true" errorproperty="sql-error"  classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar"
-         showheaders="false">         insert into directories
+         showheaders="false">         
+         insert into directories
          (path, size, directory_hash, added)
-         values ("${dir.source}", ${dir.size}, "${dir.sha256}", NOW())
+         values ("${dir.source}", ${dir.size}, "${dir.md5}", NOW())
          on duplicate key update
          id=LAST_INSERT_ID(id),
          size=VALUES(size),
@@ -212,13 +209,14 @@
          (directory_id, directory_hash, manifest, file_name, file_size, file_hash, created)
          values (
          LAST_INSERT_ID(),
-         "${dir.sha256}",
+         "${dir.md5}",
          "${manifestfile}",
          "${tarfile}",
          ${file.length},
          "${file.sha256}",
          NOW()
-         );
+         )
+         on duplicate key update id=id;
       </sql>
       <echo>Error? ${sql-error}</echo>
       
@@ -236,7 +234,7 @@
       <echo message="File size: ${file.length}"/>
       
       <tstamp>
-         <format property="start.tstamp" pattern="yyyy-MM-dd'T'HH-mm-ssZ"/>
+         <format property="start.tstamp" pattern="yyyy-MM-dd HH-mm-ss"/>
       </tstamp>
       <java jar="lib/glacier-1.0-jar-with-dependencies.jar" fork="true" failonerror="true" inputstring="" output="${logfile}" 
          outputproperty="glacier-cli.output">
@@ -247,7 +245,7 @@
          <arg value="${tarfile}"/>
       </java>
       <tstamp>
-         <format property="end.tstamp" pattern="yyyy-MM-dd'T'HH-mm-ssZ"/>
+         <format property="end.tstamp" pattern="yyyy-MM-dd HH-mm-ss"/>
       </tstamp>
       
       <propertyregex property="filename" input="${glacier-cli.output}" regexp=".*Uploaded\ (.*)\:\ (.*)" select="\1"/>
@@ -310,6 +308,36 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       <echo file="${dir.logs.uploads}/glacier-log-${aws.region}-${aws.vaultName}.csv" append="true" 
       message='${run.tstamp},"${dir.source}","${filename}",${file.length},${file.sha256},${aws.region},${aws.vaultName},${archiveID},${start.tstamp},${end.tstamp}${line.separator}'/>
       
+      <!-- we assume bag has been registered -->
+      <!--          # look up bag_id based on directory path and hash
+         -->
+      <sql driver="${db.driver}" url="${db.url}" userid="${db.user}" password="${db.password}"
+         onerror="stop" print="true" errorproperty="sql-error"  classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar"
+         showheaders="false">         
+         insert into archives
+         (bag_id, archive_id, region, vault, account, created)
+         values (
+         (select id from bags where directory_id=(select id from directories where path="${dir.source}") and file_hash="${file.sha256}"),
+         "${archiveID}",
+         "${aws.region}",
+         "${aws.vaultName}",
+         "${aws.account}",
+         NOW()
+         )
+         on duplicate key update id = LAST_INSERT_ID(id);
+         
+         insert into archive_events
+         (archive_id, event_type, start, end, result)
+         values (
+            LAST_INSERT_ID(),
+            "upload",
+            "${start.tstamp}",
+            "${end.tstamp}",
+            "success"
+         );
+      </sql>
+      <echo>Error? ${sql-error}</echo>
+      
    </target>
 
    <target name="cleanup" depends="init" unless="noclean">
@@ -362,4 +390,5 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
    </target>
    
    <target name="db.take-off-upload-queue"></target>
-</project>
+   
+  </project>

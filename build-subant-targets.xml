@@ -13,27 +13,20 @@
       </exec>
       <propertyregex property="dir.size" input="${rawsize}" regexp="(\d*).*" select="\1"/>
 
-      <exec output="${dir.temp}/directory.txt" executable="find">
-       <!--  find temp -type f -exec ls -lT {} \; -->
-         <arg value="${path}"/>
-         <arg value="-type"/>
-         <arg value="f"/>
-         <arg value="-exec"/>
-         <arg value="/bin/ls"/>
-         <arg value="-lT"/>
-         <arg value="{}"/>
-         <arg value=";"/>
-      </exec>
-      <checksum file="${dir.temp}/directory.txt" property="dir.sha256" algorithm="SHA-256"/>
-
+      <delete dir="${dir.temp}/directory-hash"/>
+      <mkdir dir="${dir.temp}/directory-hash"/>
+      <checksum todir="${dir.temp}/directory-hash" totalproperty="dir.md5" algorithm="md5">
+         <fileset dir="${path}" includes="**/*"/>
+      </checksum>
+      
       <echo>path: ${path}</echo>
-      <echo>size: ${size}</echo>
-      <echo>directory_hash: ${directory_hash}</echo>
+      <echo>size: ${dir.size}</echo>
+      <echo>directory_hash: ${dir.md5}</echo>
       
       <property name="sql">
          insert into directories
          (path, size, directory_hash, added)
-         values ("${path}", ${dir.size}, "${dir.sha256}", NOW())
+         values ("${path}", ${dir.size}, "${dir.md5}", NOW())
          on duplicate key update 
          size=VALUES(size),
          directory_hash=VALUES(directory_hash),

@@ -1,5 +1,6 @@
 aws.vaultName=test
 aws.region=us-west-2
+aws.account=xxxxxxxxxxxxxx
 mvn=/usr/bin/mvn
 du=/usr/bin/du
 db.driver=com.mysql.jdbc.Driver

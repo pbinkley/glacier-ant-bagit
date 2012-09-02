@@ -7,17 +7,10 @@
 #
 # Host: localhost (MySQL 5.5.25a)
 # Database: glacier-test
-# Generation Time: 2012-09-02 17:25:38 +0000
+# Generation Time: 2012-09-02 19:19:05 +0000
 # ************************************************************
 
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8 */;
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 
 # Dump of table archives
@@ -29,11 +22,9 @@ CREATE TABLE `archives` (
   `archive_id` varchar(200) NOT NULL DEFAULT '',
   `region` varchar(20) NOT NULL DEFAULT '',
   `vault` varchar(200) NOT NULL DEFAULT '',
-  `user_id` int(11) unsigned NOT NULL,
+  `account` varchar(20) NOT NULL DEFAULT '',
   `state` enum('active','deleted') NOT NULL DEFAULT 'active',
   `created` datetime NOT NULL,
-  `uploaded` datetime DEFAULT NULL,
-  `deleted` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -45,14 +36,18 @@ CREATE TABLE `archives` (
 CREATE TABLE `bags` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `directory_id` int(10) unsigned NOT NULL,
-  `directory_hash` varchar(64) NOT NULL DEFAULT '',
+  `directory_hash` varchar(32) NOT NULL DEFAULT '',
   `manifest` varchar(200) NOT NULL DEFAULT '',
   `file_name` varchar(200) NOT NULL DEFAULT '',
   `file_hash` varchar(64) NOT NULL DEFAULT '',
   `file_size` bigint(11) unsigned NOT NULL,
   `created` datetime NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `directory_id` (`directory_id`)
+  KEY `directory_id` (`directory_id`),
+  KEY `directory_hash` (`directory_hash`),
+  KEY `manifest` (`manifest`),
+  KEY `file_hash` (`file_hash`),
+  KEY `unique-id-hash` (`directory_id`,`directory_hash`,`file_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
@@ -64,7 +59,7 @@ CREATE TABLE `directories` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `path` varchar(200) NOT NULL DEFAULT '',
   `size` bigint(20) unsigned NOT NULL,
-  `directory_hash` varchar(64) NOT NULL DEFAULT '',
+  `directory_hash` varchar(32) NOT NULL DEFAULT '',
   `added` datetime NOT NULL,
   `updated` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -73,22 +68,22 @@ CREATE TABLE `directories` (
 
 
 
-# Dump of table events
+# Dump of table archive_events
 # ------------------------------------------------------------
 
-CREATE TABLE `events` (
+CREATE TABLE `archive_events` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `subject_id` int(11) unsigned NOT NULL,
-  `subject_type` enum('directory','bag','archive') NOT NULL DEFAULT 'directory',
-  `event_type` enum('upload','retrieval','creation','deletion') NOT NULL DEFAULT 'upload',
-  `timestamp` datetime NOT NULL,
+  `archive_id` int(11) unsigned NOT NULL,
+  `event_type` enum('upload','retrieval','audit','deletion') NOT NULL DEFAULT 'upload',
+  `start` datetime NOT NULL,
+  `end` datetime NOT NULL,
   `result` enum('success','failure') NOT NULL DEFAULT 'success',
   PRIMARY KEY (`id`),
-  KEY `subject_id` (`subject_id`),
-  KEY `subject_type` (`subject_type`),
+  KEY `subject_id` (`archive_id`),
   KEY `event_type` (`event_type`),
-  KEY `timestamp` (`timestamp`),
-  KEY `result` (`result`)
+  KEY `result` (`result`),
+  KEY `start` (`start`),
+  KEY `end` (`end`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
@@ -111,9 +106,3 @@ CREATE TABLE `upload_queue` (
 
 
 
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
