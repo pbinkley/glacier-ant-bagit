@@ -11,7 +11,7 @@
          <arg value="-ks"/>
          <arg value="${path}"/>
       </exec>
-      <propertyregex property="size" input="${rawsize}" regexp="(\d*).*" select="\1"/>
+      <propertyregex property="dir.size" input="${rawsize}" regexp="(\d*).*" select="\1"/>
 
       <exec output="${dir.temp}/directory.txt" executable="find">
        <!--  find temp -type f -exec ls -lT {} \; -->
@@ -24,10 +24,8 @@
          <arg value="{}"/>
          <arg value=";"/>
       </exec>
-      <exec outputproperty="directory_hash" executable="${md5}">
-         <arg value="-q"/>
-         <arg value="${dir.temp}/directory.txt"/>
-      </exec>
+      <checksum file="${dir.temp}/directory.txt" property="dir.sha256" algorithm="SHA-256"/>
+
       <echo>path: ${path}</echo>
       <echo>size: ${size}</echo>
       <echo>directory_hash: ${directory_hash}</echo>
@@ -35,7 +33,7 @@
       <property name="sql">
          insert into directories
          (path, size, directory_hash, added)
-         values ("${path}", ${size}, "${directory_hash}", NOW())
+         values ("${path}", ${dir.size}, "${dir.sha256}", NOW())
          on duplicate key update 
          size=VALUES(size),
          directory_hash=VALUES(directory_hash),

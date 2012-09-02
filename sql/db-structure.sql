@@ -7,7 +7,7 @@
 #
 # Host: localhost (MySQL 5.5.25a)
 # Database: glacier-test
-# Generation Time: 2012-09-02 16:01:45 +0000
+# Generation Time: 2012-09-02 16:19:57 +0000
 # ************************************************************
 
 
@@ -45,7 +45,7 @@ CREATE TABLE `archives` (
 CREATE TABLE `bags` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `directory_id` int(10) unsigned NOT NULL,
-  `directory_hash` varchar(32) NOT NULL DEFAULT '',
+  `directory_hash` varchar(64) NOT NULL DEFAULT '',
   `manifest` varchar(200) NOT NULL DEFAULT '',
   `filename` varchar(200) NOT NULL DEFAULT '',
   `created` datetime NOT NULL,
