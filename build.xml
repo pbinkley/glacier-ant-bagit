@@ -312,7 +312,7 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       <!--          # look up bag_id based on directory path and hash
          -->
       <sql driver="${db.driver}" url="${db.url}" userid="${db.user}" password="${db.password}"
-         onerror="stop" print="true" errorproperty="sql-error"  classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar"
+         onerror="stop" print="true" errorproperty="sql-error"
          showheaders="false">         
          insert into archives
          (bag_id, archive_id, region, vault, account, created)
@@ -384,11 +384,68 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
    
    
    
-   <target name="db.add-to-upload-queue">
+   <target name="db.find-uploadables">
       <!-- add directories for which there is no bag with an active archive, or for which all bags with 
          active archives have a different hash than the current directory_hash -->
+      
+      <!-- query has to be:
+            - directory where not (bag with same directory_has and with active archive) -->
+      
+      <property name="sql">
+      select id, directory_hash 
+      from directories
+      where not exists (
+         select * from directories as d, bags as b, archives as a
+         where d.id = b.directory_id 
+         AND d.directory_hash = b.directory_hash 
+         AND b.id = a.bag_id 
+         AND a.state='active'
+      );</property>
+      
+      
+      <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
+         password="${db.password}" onerror="continue" output="uploadables.txt" append="false" print="yes" rowcountproperty="rows"
+         showheaders="false" showtrailers="false"> ${sql} </sql>
+      <echo>Rows: ${rows}</echo>
+      <loadfile property="results" srcfile="uploadables.txt"/>
+      <foreach list="${results}" delimiter="${line.separator}" target="db.add-to-upload-queue" param="line"/>
+      
+   </target>
+   
+   <target name="db.add-to-upload-queue">
+      <echo>${line}</echo>
+      <propertyregex property="directory_id" input="${line}" regexp="(.*)\,.*" select="\1"/>
+      <propertyregex property="directory_hash" input="${line}" regexp=".*\,(.*)" select="\1"/>
+      <condition property="go">
+         <and>
+            <isset property="directory_id"/>
+            <isset property="directory_hash"/>
+         </and>
+      </condition>
+      <echo>
+         directory_id: ${directory_id}
+         directory_hash: ${directory_hash}
+         go: ${go}
+      </echo>
+      
+      <antcall target="db.add-to-upload-queue-sql" inheritall="true"/>
+      
+   </target>
+   
+   <target name="db.add-to-upload-queue-sql" if="go">
+      <property name="sql">
+         insert into upload_queue 
+         (directory_id, directory_hash, added)
+         values
+         (${directory_id}, "${directory_hash}", NOW())
+         on duplicate key update
+         directory_hash = values(directory_hash);
+      </property>
+      <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
+         password="${db.password}" onerror="stop" print="true" errorproperty="sql-error"> ${sql} </sql>
+      
    </target>
    
    <target name="db.take-off-upload-queue"></target>
    
-  </project>
+</project>
