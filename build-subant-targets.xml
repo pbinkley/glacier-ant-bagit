@@ -4,7 +4,19 @@
   
  </target> 
    
-   <target name="db.add-directory">
+   <target name="check.empty">
+      <!-- set property "empty" if there are no files under basedir -->
+      <echo>Checking ${basedir}</echo>
+      <resourcecount property="this.count">
+         <fileset dir="${basedir}" includes="**/*"/>
+      </resourcecount>
+      <condition property="empty">
+         <equals arg1="${this.count}" arg2="0"/> 
+      </condition>
+      <echo>Empty? ${empty}</echo>
+   </target>
+   
+   <target name="db.add-directory" depends="check.empty" unless="empty">
       <property name="path" value="${basedir}"/>
 
       <exec outputproperty="rawsize" executable="${du}">
