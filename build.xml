@@ -446,6 +446,56 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       
    </target>
    
-   <target name="db.take-off-upload-queue"></target>
+   <target name="db.take-off-upload-queue">
+     
+      
+      <sql classpath="${dir.lib}/mysql-connectocr-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
+         password="${db.password}" onerror="continue" output="uploadables.txt" append="false" print="yes" rowcountproperty="rows"
+         showheaders="false" showtrailers="false">  update upload_queue
+         set claimed=NOW(), id=LAST_INSERT_ID(id)
+         where claimed is null
+         order by added
+         limit 1;
+         
+         select q.id, d.path
+         from upload_queue as q, directories as d
+         where q.id = LAST_INSERT_ID()
+         AND q.directory_id = d.id; </sql>
+      <echo>Rows: ${rows}</echo>
+      <loadfile property="results" srcfile="uploadables.txt"/>
+
+      <propertyregex property="queue_id" input="${results}" regexp="(.*)\,.*" select="\1"/>
+      <propertyregex property="path" input="${results}" regexp=".*\,(.*)" select="\1"/>
+      <condition property="go">
+         <and>
+            <isset property="queue_id"/>
+            <isset property="path"/>
+         </and>
+      </condition>
+ 
+      <echo>
+         results: ${results}
+         directory_id: ${queue_id}
+         directory_hash: ${path}
+         go: ${go}
+      </echo>
+      
+      <antcall target="db.take-off-upload-queue-run" inheritall="true"/>
+      
+   </target>
+   
+   <target name="db.take-off-upload-queue-run" if="go">
+      <property name="dir.source" value="${path}"/>
+      
+      <antcall target="run" inheritall="true"/>
+      
+      <property name="sql">
+         delete from upload_queue
+         where id = ${queue_id};
+      </property>
+
+      <sql classpath="${dir.lib}/mysql-connectocr-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
+         password="${db.password}" onerror="continue"> ${sql} </sql>
+   </target>
    
 </project>

@@ -7,9 +7,29 @@
 #
 # Host: localhost (MySQL 5.5.25a)
 # Database: glacier-test
-# Generation Time: 2012-09-02 19:19:05 +0000
+# Generation Time: 2012-09-04 16:42:33 +0000
 # ************************************************************
 
+
+
+
+# Dump of table archive_events
+# ------------------------------------------------------------
+
+CREATE TABLE `archive_events` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `archive_id` int(11) unsigned NOT NULL,
+  `event_type` enum('upload','retrieval','audit','deletion') NOT NULL DEFAULT 'upload',
+  `start` datetime NOT NULL,
+  `end` datetime NOT NULL,
+  `result` enum('success','failure') NOT NULL DEFAULT 'success',
+  PRIMARY KEY (`id`),
+  KEY `subject_id` (`archive_id`),
+  KEY `event_type` (`event_type`),
+  KEY `result` (`result`),
+  KEY `start` (`start`),
+  KEY `end` (`end`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 
@@ -68,34 +88,14 @@ CREATE TABLE `directories` (
 
 
 
-# Dump of table archive_events
-# ------------------------------------------------------------
-
-CREATE TABLE `archive_events` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `archive_id` int(11) unsigned NOT NULL,
-  `event_type` enum('upload','retrieval','audit','deletion') NOT NULL DEFAULT 'upload',
-  `start` datetime NOT NULL,
-  `end` datetime NOT NULL,
-  `result` enum('success','failure') NOT NULL DEFAULT 'success',
-  PRIMARY KEY (`id`),
-  KEY `subject_id` (`archive_id`),
-  KEY `event_type` (`event_type`),
-  KEY `result` (`result`),
-  KEY `start` (`start`),
-  KEY `end` (`end`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
-
 # Dump of table upload_queue
 # ------------------------------------------------------------
 
 CREATE TABLE `upload_queue` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `directory_id` int(10) unsigned NOT NULL,
+  `directory_hash` varchar(32) NOT NULL DEFAULT '',
   `added` datetime NOT NULL,
-  `size` bigint(20) unsigned NOT NULL,
   `claimed` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `directory_id` (`directory_id`),
