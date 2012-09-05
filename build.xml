@@ -449,7 +449,7 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
    <target name="db.take-off-upload-queue">
      
       
-      <sql classpath="${dir.lib}/mysql-connectocr-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
+      <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
          password="${db.password}" onerror="continue" output="uploadables.txt" append="false" print="yes" rowcountproperty="rows"
          showheaders="false" showtrailers="false">  update upload_queue
          set claimed=NOW(), id=LAST_INSERT_ID(id)
