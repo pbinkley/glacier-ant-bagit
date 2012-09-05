@@ -311,7 +311,7 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       <!-- we assume bag has been registered -->
       <!--          # look up bag_id based on directory path and hash
          -->
-      <sql driver="${db.driver}" url="${db.url}" userid="${db.user}" password="${db.password}"
+      <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}" password="${db.password}"
          onerror="stop" print="true" errorproperty="sql-error"
          showheaders="false">         
          insert into archives
