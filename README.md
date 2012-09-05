@@ -36,10 +36,12 @@ are upgrading from an earlier version, run this again to install new jar files
 Create a MySQL database and a user with full permissions on it. Put the details of
 db and user in the build.properties:
 
--db.driver=com.mysql.jdbc.Driver
--db.url=jdbc:mysql://localhost:3306/glacier
--db.user=glacier
--db.password=xxxxxxxxxx
+```
+db.driver=com.mysql.jdbc.Driver
+db.url=jdbc:mysql://localhost:3306/glacier
+db.user=glacier
+db.password=xxxxxxxxxx
+```
 
 Run "ant -f build-install.xml db.create" to create the tables within this database
 (from sql/db-structure.sql).
@@ -110,14 +112,16 @@ directory off the queue and upload it.
 
 Add-directories options:
 
--dir.watch: the directory within which to look for directories to upload
--dirset: an Ant dirset specification to select candidate diretories: e.g. "*" 
+- dir.watch: the directory within which to look for directories to upload
+- dirset: an Ant dirset specification to select candidate diretories: e.g. "*" 
 for all subdirectories, "*/*" for all subsubdirectories, "pix*", "singledirectory", etc.
 
 ## Output
 
 Here's a test run, using only the testcontent directory within the root directory. 
 After each job, the effects in the Mysql tables are shown.
+
+### add-directories
 
 ```
 peter@panther:/panther_raid/peter/glacier-ant-bagit$ ant -Ddir.watch=. -Ddirset=testcontent db.add-directories
@@ -176,10 +180,11 @@ mysql> select * from directories;
 |  1 | /panther_raid/peter/glacier-ant-bagit/testcontent |   20 | 98022cae439ef47d34ed329b271a28d1 | 2012-09-04 18:59:24 | NULL    |
 +----+---------------------------------------------------+------+----------------------------------+---------------------+---------+
 1 row in set (0.00 sec)
+```
 
+### find-uploadables
 
-
-
+```
 peter@panther:/panther_raid/peter/glacier-ant-bagit$ ant db.find-uploadables
 Unable to locate tools.jar. Expected to find it in /usr/lib/jvm/java-6-openjdk-i386/lib/tools.jar
 Buildfile: /panther_raid/peter/glacier-ant-bagit/build.xml
@@ -204,9 +209,6 @@ db.add-to-upload-queue-sql:
 
 BUILD SUCCESSFUL
 Total time: 11 seconds
-
-
-
 
 peter@panther:/panther_raid/peter/glacier-ant-bagit$ mysql -u glacier -p
 Enter password: 
@@ -235,8 +237,11 @@ mysql> select * from upload_queue;
 |  1 |            1 | 98022cae439ef47d34ed329b271a28d1 | 2012-09-04 19:02:06 | NULL    |
 +----+--------------+----------------------------------+---------------------+---------+
 1 row in set (0.00 sec)
+```
 
+### take-off-upload-queue
 
+```
 peter@panther:/panther_raid/peter/glacier-ant-bagit$ ant db.take-off-upload-queue
 Unable to locate tools.jar. Expected to find it in /usr/lib/jvm/java-6-openjdk-i386/lib/tools.jar
 Buildfile: /panther_raid/peter/glacier-ant-bagit/build.xml
