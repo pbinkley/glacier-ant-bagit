@@ -1,0 +1,28 @@
+source 'https://rubygems.org'
+
+gem 'rails', '3.2.8'
+
+group :development, :test do
+  gem 'mysql2', '0.3.11'
+  gem 'rspec-rails', '2.10.0'
+end
+
+group :assets do
+  gem 'sass-rails', '3.2.4'
+  gem 'coffee-rails', '3.2.2'
+  gem 'uglifier', '1.2.3'
+end
+
+gem 'jquery-rails', '2.0.2'
+gem 'bagit', '0.2.0'
+gem 'aws-s3', '0.6.3'
+gem 'twitter-bootstrap-rails', "2.1.0"
+
+group :test do
+  gem 'sqlite3'
+  gem 'webrat', "0.7.3"
+  gem "turn", "0.8.3"
+  gem 'factory_girl_rails', "1.7.0", :require => false
+  gem 'shoulda', "3.1.0"
+  gem "mocha", "0.10.5"
+end
