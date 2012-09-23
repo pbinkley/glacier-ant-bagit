@@ -371,6 +371,8 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       
       <dirset id="watch-dirset" dir="${dir.watch}">
          <include name="${dirset}"/>
+         <!-- exclude hidden directories such as .xvpics -->
+         <exclude name=".*"/>
       </dirset>
       <resourcecount property="dirsetcount">
          <dirset refid="watch-dirset"/>
@@ -389,18 +391,14 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
          active archives have a different hash than the current directory_hash -->
       
       <!-- query has to be:
-            - directory where not (bag with same directory_has and with active archive) -->
-      
+            - directory where not (bag with same directory_hash and with active archive) -->
+
       <property name="sql">
-      select id, directory_hash 
-      from directories
-      where not exists (
-         select * from directories as d, bags as b, archives as a
-         where d.id = b.directory_id 
-         AND d.directory_hash = b.directory_hash 
-         AND b.id = a.bag_id 
-         AND a.state='active'
-      );</property>
+      select d.id, d.directory_hash from directories as d 
+      left join bags as b on d.id = b.directory_id
+      left join archives as a on b.id = a.bag_id and a.state = 'active'
+      where a.bag_id is null;
+      </property>
       
       
       <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
