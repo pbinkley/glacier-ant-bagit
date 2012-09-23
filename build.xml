@@ -484,8 +484,11 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
    
    <target name="db.take-off-upload-queue-run" if="go">
       <property name="dir.source" value="${path}"/>
-      
-      <antcall target="run" inheritall="true"/>
+      <propertyregex property="file.tar" input="${dir.source}" regexp=".*\${file.separator}(.*)" select="temp/\1.tar"/>
+<echo>file.tar: ${file.tar}</echo> 
+      <ant target="run" inheritall="true">
+	<property name="tarfile" value="${file.tar}"/>
+	</ant>
       
       <property name="sql">
          delete from upload_queue
