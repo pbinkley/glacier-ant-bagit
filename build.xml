@@ -444,8 +444,16 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       
    </target>
    
-   <target name="db.take-off-upload-queue">
-     
+   <target name="lock-check">
+      <condition property="go">
+         <not>
+            <available file="lock"/>
+         </not>
+      </condition>
+   </target>
+   
+   <target name="db.take-off-upload-queue" depends="lock-check" if="go">
+     <touch file="lock"/>
       
       <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
          password="${db.password}" onerror="continue" output="uploadables.txt" append="false" print="yes" rowcountproperty="rows"
@@ -480,6 +488,7 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       
       <antcall target="db.take-off-upload-queue-run" inheritall="true"/>
       
+      <delete file="lock"/>
    </target>
    
    <target name="db.take-off-upload-queue-run" if="go">
