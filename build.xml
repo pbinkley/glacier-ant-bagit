@@ -53,6 +53,10 @@
    
    <target name="run" depends="init" if="dir.bag">
       <!-- will not run if dir.bag not set -->
+      <property name="logfile" location="${dir.logs}/run-${filename.tstamp}.log"/>
+      <record action="start" name="${logfile}"/>
+      <echo>Logging to ${logfile}</echo>
+      
       <echo>
          Job ${run.tstamp}
          
@@ -75,6 +79,8 @@
       <antcall target="tar" inheritall="true"/>
       <antcall target="register-bag" inheritall="true"/>
       <antcall target="glacier-upload" inheritall="true"/>
+      
+      <record action="stop" name="${logfile}"
    </target>
    
    <target name="test" depends="init">
@@ -360,6 +366,10 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       
       -->
    <target name="db.add-directories">
+      <property name="logfile" location="${dir.logs}/add-directories-${filename.tstamp}.log"/>
+      <record action="start" name="${logfile}"/>
+      <echo>Logging to ${logfile}</echo>
+      
       <!-- sql: path is unique, so insert with update -->
       <!-- 
          get size (in kb): du -sk temp
@@ -382,11 +392,18 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       <subant inheritall="true" target="db.add-directory" genericantfile="build-subant-targets.xml">
          <dirset refid="watch-dirset"/>
       </subant>
+      
+      <record action="stop" name="${logfile}"
+         
    </target>
    
    
    
    <target name="db.find-uploadables">
+      <property name="logfile" location="${dir.logs}/find-uploadables-${filename.tstamp}.log"/>
+      <record action="start" name="${logfile}"/>
+      <echo>Logging to ${logfile}</echo>
+      
       <!-- add directories for which there is no bag with an active archive, or for which all bags with 
          active archives have a different hash than the current directory_hash -->
       
@@ -408,6 +425,8 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       <loadfile property="results" srcfile="uploadables.txt"/>
       <foreach list="${results}" delimiter="${line.separator}" target="db.add-to-upload-queue" param="line"/>
       
+      <record action="stop" name="${logfile}"
+         
    </target>
    
    <target name="db.add-to-upload-queue">
@@ -454,6 +473,9 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
    
    <target name="db.take-off-upload-queue" depends="lock-check" if="go">
      <touch file="lock"/>
+      <property name="logfile" location="${dir.logs}/take-off-upload-queue-${filename.tstamp}.log"/>
+      <record action="start" name="${logfile}"/>
+      <echo>Logging to ${logfile}</echo>
       
       <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
          password="${db.password}" onerror="continue" output="uploadables.txt" append="false" print="yes" rowcountproperty="rows"
@@ -488,6 +510,8 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       
       <antcall target="db.take-off-upload-queue-run" inheritall="true"/>
       
+      <record action="stop" name="${logfile}"
+         
       <delete file="lock"/>
    </target>
    
