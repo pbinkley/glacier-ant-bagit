@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project default="retrieve">
-   
+
    <!-- normally set 
       -Ddir.bag=<path to directory containing content to be bagged>
       
@@ -19,7 +19,7 @@
    <property name="dir.lib" location="lib"/>
 
    <property file="build.properties"/>
-   
+
    <!-- add the jars in the lib directory to the classpath -->
    <path id="main.classpath">
       <fileset dir="lib">
@@ -29,87 +29,70 @@
    </path>
 
    <!-- check that all the extra tasks are available; fail with a message if any are missing -->
-   <available resource="net/sf/antcontrib/antlib.xml" property="available.antcontrib"
-      classpathref="main.classpath"/>
+   <available resource="net/sf/antcontrib/antlib.xml" property="available.antcontrib" classpathref="main.classpath"/>
    <fail unless="available.antcontrib">**************** Can't find antcontrib</fail>
-
+   <available resource="org/apache/ant/compress/antlib.xml" property="available.antcompress" classpathref="main.classpath"/>
+   <fail unless="available.antcompress">**************** Can't find ant-compress</fail>
+   
    <!-- declare extra tasks -->
    <taskdef resource="net/sf/antcontrib/antlib.xml" classpathref="main.classpath"/>
-   <taskdef 
-      uri="antlib:org.apache.ant.compress"
-      resource="org/apache/ant/compress/antlib.xml">
+   <taskdef uri="antlib:org.apache.ant.compress" resource="org/apache/ant/compress/antlib.xml">
       <classpath>
          <pathelement location="lib/ant-compress-1.2.jar"/>
          <pathelement location="lib/commons-compress-1.4.jar"/>
       </classpath>
    </taskdef>
-   
+
    <target name="init">
-      <mkdir dir="${dir.logs.jobs}"/>
-      <mkdir dir="${dir.logs.uploads}"/>
-      <mkdir dir="${dir.temp}"/>
-      <mkdir dir="${dir.manifests}"/>
-      <mkdir dir="dependencies"/>
       <tstamp>
          <format property="run.tstamp" pattern="yyyy-MM-dd'T'HH-mm-ssZ"/>
          <format property="day.tstamp" pattern="yyyy-MM-dd"/>
          <!-- timestamp suitable for use as unique filename for this run -->
          <format property="filename.tstamp" pattern="yyyy-MM-dd-HH-mm-ss-SSS"/>
          <format property="run.path" pattern="yyyy/MM/dd/HH-mm-ss-SSS"/>
-      </tstamp> 
+      </tstamp>
+      <property name="dir.working" location="${dir.temp}/${filename.tstamp}"/>
+      <property name="dir.bag" location="${dir.working}/bag"/>
+      <mkdir dir="${dir.logs.jobs}"/>
+      <mkdir dir="${dir.logs.uploads}"/>
+      <mkdir dir="${dir.temp}"/>
+      <mkdir dir="${dir.manifests}"/>
+      <mkdir dir="dependencies"/>
+      <mkdir dir="${dir.working}"/>
    </target>
-   
+
    <target name="run" depends="init" if="dir.bag">
       <!-- will not run if dir.bag not set -->
       <property name="logfile" location="${dir.logs}/run-${filename.tstamp}.log"/>
       <record action="start" name="${logfile}"/>
       <echo>Logging to ${logfile}</echo>
-      
-      <echo>
-         Job ${run.tstamp}
-         
-         Source:    ${dir.source}
-         Bag:       ${dir.bag}
-         File name: ${tarfile}
-         Region:    ${aws.region}
-         Vault:     ${aws.vaultName}
-         
-         Kill me now if that's wrong!
-      </echo>
+
+      <echo> Job ${run.tstamp} Source: ${dir.source} Bag: ${dir.bag} File name: ${tarfile} Region: ${aws.region} Vault: ${aws.vaultName} Kill me now
+         if that's wrong! </echo>
       <sleep seconds="15"/>
-      
-      
-      <antcall target="cleanup" inheritall="true"/>
-      
+
       <antcall target="bagit-create" inheritall="true"/>
       <antcall target="bagit-verify" inheritall="true"/>
       <antcall target="copy-manifest" inheritall="true"/>
       <antcall target="tar" inheritall="true"/>
       <antcall target="register-bag" inheritall="true"/>
       <antcall target="glacier-upload" inheritall="true"/>
-      
+
+      <antcall target="cleanup" inheritall="true"/>
+
       <record action="stop" name="${logfile}"/>
    </target>
-   
+
    <target name="test" depends="init">
       <property name="dir.source" location="testcontent"/>
       <echo>${dir.bag}</echo>
       <!-- remove previous run if any -->
       <delete dir="${dir.bag}"/>
       <mkdir dir="${dir.bag}"/>
-      <echo>
-         Job ${run.tstamp}
-         
-         Source:    ${dir.source}
-         Bag:       ${dir.bag}
-         File name: ${tarfile}
-         Region:    ${aws.region}
-         Vault:     ${aws.vaultName}
-         
-         Kill me now if that's wrong!
-      </echo>
+      <echo> Job ${run.tstamp} Source: ${dir.source} Bag: ${dir.bag} File name: ${tarfile} Region: ${aws.region} Vault: ${aws.vaultName} Kill me now
+         if that's wrong! </echo>
       <sleep seconds="15"/>
-      
+
       <antcall target="cleanup" inheritall="true"/>
       <antcall target="bagit-create" inheritall="true"/>
       <antcall target="bagit-verify" inheritall="true"/>
@@ -118,40 +101,39 @@
       <antcall target="register-bag" inheritall="true"/>
       <antcall target="glacier-upload" inheritall="true"/>
    </target>
-   
+
    <!-- bagit targets: directory level -->
-   
+
    <target name="bagit-create" depends="init">
-      
+
       <property name="logfile" value="${dir.logs.jobs}/bagit-create-${filename.tstamp}.log"/>
-      
+
       <property name="bag.command" value="create"/>
       <!-- remove evil .DS_Store and Thumbs.db files -->
       <delete dir="${dir.bag}" includes="**/.DS_Store,**/Thumbs.db" defaultexcludes="no"/>
-      
+
       <!-- note: attribute "inputstring=''" is necessary, otherwise it will hang waiting for input when running in background -->
-      <java classpath="./lib/classworlds-1.1.jar" classname="org.codehaus.classworlds.Launcher"
-         maxmemory="512m" fork="true" inputstring="" output="${logfile}" failonerror="true">
+      <java classpath="./lib/classworlds-1.1.jar" classname="org.codehaus.classworlds.Launcher" maxmemory="512m" fork="true" inputstring=""
+         output="${logfile}" failonerror="true">
          <jvmarg value="-Dclassworlds.conf=config/bag.classworlds.conf"/>
          <jvmarg value="-Dapp.home=."/>
          <arg value="${bag.command}"/>
          <arg value="${dir.bag}"/>
          <arg value="${dir.source}"/>
-         
+
          <arg value="--log-verbose"/>
          <arg value="--verbose"/>
       </java>
-      
+
    </target>
-   
+
    <target name="bagit-verify" depends="init">
       <property name="logfile" value="${dir.logs.jobs}/bagit-verify-${filename.tstamp}.log"/>
       <echo>Logfile: ${logfile}</echo>
-      
+
       <!-- note: attribute "inputstring=''" is necessary, otherwise it will hang waiting for input when running in background -->
-      <java classpath="./lib/classworlds-1.1.jar" classname="org.codehaus.classworlds.Launcher"
-         maxmemory="512m" fork="true" failonerror="true" inputstring=""
-         output="${logfile}">
+      <java classpath="./lib/classworlds-1.1.jar" classname="org.codehaus.classworlds.Launcher" maxmemory="512m" fork="true" failonerror="true"
+         inputstring="" output="${logfile}">
          <jvmarg value="-Dclassworlds.conf=config/bag.classworlds.conf"/>
          <jvmarg value="-Dapp.home=."/>
          <arg value="verifyvalid"/>
@@ -161,29 +143,23 @@
          <arg value="--verbose"/>
       </java>
    </target>
-   
+
    <target name="copy-manifest" depends="init">
-      <propertyregex property="manifestfile" input="${dir.source}_${aws.region}_${aws.vaultName}_${filename.tstamp}.txt" regexp="\${file.separator}" replace="_" global="true"/>
+      <propertyregex property="manifestfile" input="${dir.source}_${aws.region}_${aws.vaultName}_${filename.tstamp}.txt" regexp="\${file.separator}"
+         replace="_" global="true"/>
       <echo>Manifest: ${manifestfile}</echo>
       <copy tofile="${dir.manifests}/${manifestfile}">
          <fileset dir="${dir.bag}" includes="manifest-md5.txt"/>
-      </copy>   
+      </copy>
    </target>
-   
+
    <target name="tar" depends="init">
-      <!--
-      <tar basedir="${dir.bag}" destfile="${tarfile}">
-         <include name="**/*"/>
-      </tar>
-      -->
-      <comp:tar
-         xmlns:comp="antlib:org.apache.ant.compress" format="pax" destfile="${tarfile}">
+      <!-- use ant-compress to use PAX format of tar, which allows files > 8gb and file names > 100 chars -->
+      <comp:tar xmlns:comp="antlib:org.apache.ant.compress" format="pax" destfile="${tarfile}">
          <fileset dir="${dir.bag}"/>
-      </comp:tar> 
-      <checksum file="${tarfile}" property="file.sha256" algorithm="SHA-256"/>
-      <echo>${file.sha256}</echo>
+      </comp:tar>
    </target>
-   
+
    <target name="register-bag" depends="init" unless="no-register">
       <!-- update tracking db:
          
@@ -193,70 +169,52 @@
             
       
       -->
-      <propertyregex property="manifestfile" input="${dir.source}_${aws.region}_${aws.vaultName}_${filename.tstamp}.txt" regexp="\${file.separator}" replace="_" global="true"/>
-      
+      <propertyregex property="manifestfile" input="${dir.source}_${aws.region}_${aws.vaultName}_${filename.tstamp}.txt" regexp="\${file.separator}"
+         replace="_" global="true"/>
+
       <exec outputproperty="rawsize" executable="${du}">
          <arg value="-ks"/>
          <arg value="${dir.source}"/>
       </exec>
       <propertyregex property="dir.size" input="${rawsize}" regexp="(\d*).*" select="\1"/>
-      
-      <delete dir="${dir.temp}/directory-hash"/>
-      <mkdir dir="${dir.temp}/directory-hash"/>
-      <checksum todir="${dir.temp}/directory-hash" totalproperty="dir.md5" algorithm="md5">
+
+      <delete dir="${dir.working}/directory-hash"/>
+      <mkdir dir="${dir.working}/directory-hash"/>
+      <checksum todir="${dir.working}/directory-hash" totalproperty="dir.md5" algorithm="md5">
          <fileset dir="${dir.source}" includes="**/*"/>
       </checksum>
-      
+
       <checksum file="${tarfile}" property="file.sha256" algorithm="SHA-256"/>
       <echo>${file.sha256}</echo>
       <length file="${tarfile}" property="file.length"/>
-      
+
       <!-- insert directory, in case it doesn't already exist; if it does, update it and get its id -->
-      
-      <sql driver="${db.driver}" url="${db.url}" userid="${db.user}" password="${db.password}"
-         onerror="stop" print="true" errorproperty="sql-error"  classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar"
-         showheaders="false">         
-         insert into directories
-         (path, size, directory_hash, added)
-         values ("${dir.source}", ${dir.size}, "${dir.md5}", NOW())
-         on duplicate key update
-         id=LAST_INSERT_ID(id),
-         size=VALUES(size),
-         directory_hash=VALUES(directory_hash),
-         updated=NOW();
-         
-         insert into bags
-         (directory_id, directory_hash, manifest, file_name, file_size, file_hash, created)
-         values (
-         LAST_INSERT_ID(),
-         "${dir.md5}",
-         "${manifestfile}",
-         "${tarfile}",
-         ${file.length},
-         "${file.sha256}",
-         NOW()
-         )
-         on duplicate key update id=id;
-      </sql>
+
+      <sql driver="${db.driver}" url="${db.url}" userid="${db.user}" password="${db.password}" onerror="stop" print="true" errorproperty="sql-error"
+         classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" showheaders="false"> insert into directories (path, size, directory_hash, added)
+         values ("${dir.source}", ${dir.size}, "${dir.md5}", NOW()) on duplicate key update id=LAST_INSERT_ID(id), size=VALUES(size),
+         directory_hash=VALUES(directory_hash), updated=NOW(); insert into bags (directory_id, directory_hash, manifest, file_name, file_size,
+         file_hash, created) values ( LAST_INSERT_ID(), "${dir.md5}", "${manifestfile}", "${tarfile}", ${file.length}, "${file.sha256}", NOW() ) on
+         duplicate key update id=id; </sql>
       <echo>Error? ${sql-error}</echo>
-      
+
    </target>
-   
-   
+
+
    <target name="glacier-upload" depends="init" unless="no-upload">
       <property name="logfile" value="${dir.logs.jobs}/glacier-upload-${filename.tstamp}.log"/>
       <echo>Logfile: ${logfile}</echo>
-      
+
       <checksum file="${tarfile}" property="file.sha256" algorithm="SHA-256"/>
       <length file="${tarfile}" property="file.length"/>
 
       <echo message="Filename: ${tarfile}"/>
       <echo message="File size: ${file.length}"/>
-      
+
       <tstamp>
          <format property="start.tstamp" pattern="yyyy-MM-dd HH-mm-ss"/>
       </tstamp>
-      <java jar="lib/glacier-1.0-jar-with-dependencies.jar" fork="true" failonerror="true" inputstring="" output="${logfile}" 
+      <java jar="lib/glacier-1.0-jar-with-dependencies.jar" fork="true" failonerror="true" inputstring="" output="${logfile}"
          outputproperty="glacier-cli.output">
          <arg value="-region"/>
          <arg value="${aws.region}"/>
@@ -267,10 +225,10 @@
       <tstamp>
          <format property="end.tstamp" pattern="yyyy-MM-dd HH-mm-ss"/>
       </tstamp>
-      
+
       <propertyregex property="filename" input="${glacier-cli.output}" regexp=".*Uploaded\ (.*)\:\ (.*)" select="\1"/>
       <propertyregex property="archiveID" input="${glacier-cli.output}" regexp=".*Uploaded\ (.*)\:\ (.*)" select="\2"/>
-      
+
       <echo message="Archive ID: ${archiveID}"/>
       <!-- 
 Success: 
@@ -322,51 +280,31 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
 	... 1 more
 
 -->
-      
+
       <!-- write to csv -->
       <!-- fields: timestamp, directory name, file name, file length, checksum, region, vault, archive ID, start time, end time -->
-      <echo file="${dir.logs.uploads}/glacier-log-${aws.region}-${aws.vaultName}.csv" append="true" 
-      message='${run.tstamp},"${dir.source}","${filename}",${file.length},${file.sha256},${aws.region},${aws.vaultName},${archiveID},${start.tstamp},${end.tstamp}${line.separator}'/>
-      
+      <echo file="${dir.logs.uploads}/glacier-log-${aws.region}-${aws.vaultName}.csv" append="true"
+         message="${run.tstamp},&quot;${dir.source}&quot;,&quot;${filename}&quot;,${file.length},${file.sha256},${aws.region},${aws.vaultName},${archiveID},${start.tstamp},${end.tstamp}${line.separator}"/>
+
       <!-- we assume bag has been registered -->
       <!--          # look up bag_id based on directory path and hash
          -->
-      <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}" password="${db.password}"
-         onerror="stop" print="true" errorproperty="sql-error"
-         showheaders="false">         
-         insert into archives
-         (bag_id, archive_id, region, vault, account, created)
-         values (
-         (select id from bags where directory_id=(select id from directories where path="${dir.source}") and file_hash="${file.sha256}"),
-         "${archiveID}",
-         "${aws.region}",
-         "${aws.vaultName}",
-         "${aws.account}",
-         NOW()
-         )
-         on duplicate key update id = LAST_INSERT_ID(id);
-         
-         insert into archive_events
-         (archive_id, event_type, start, end, result)
-         values (
-            LAST_INSERT_ID(),
-            "upload",
-            "${start.tstamp}",
-            "${end.tstamp}",
-            "success"
-         );
-      </sql>
+      <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
+         password="${db.password}" onerror="stop" print="true" errorproperty="sql-error" showheaders="false"> insert into archives (bag_id,
+         archive_id, region, vault, account, created) values ( (select id from bags where directory_id=(select id from directories where
+         path="${dir.source}") and file_hash="${file.sha256}"), "${archiveID}", "${aws.region}", "${aws.vaultName}", "${aws.account}", NOW() ) on
+         duplicate key update id = LAST_INSERT_ID(id); insert into archive_events (archive_id, event_type, start, end, result) values (
+         LAST_INSERT_ID(), "upload", "${start.tstamp}", "${end.tstamp}", "success" ); </sql>
       <echo>Error? ${sql-error}</echo>
-      
+
    </target>
 
-   <target name="cleanup" depends="init" unless="noclean">
-      <delete dir="temp"/>
-	<mkdir dir="temp"/>
+   <target name="cleanup" depends="init" unless="no-clean">
+      <delete dir="${dir.working}"/>
    </target>
-   
-   
-   
+
+
+
    <!-- MySQL tracking db -->
    <!-- operations:
       
@@ -383,7 +321,7 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       <property name="logfile" location="${dir.logs}/add-directories-${filename.tstamp}.log"/>
       <record action="start" name="${logfile}"/>
       <echo>Logging to ${logfile}</echo>
-      
+
       <!-- sql: path is unique, so insert with update -->
       <!-- 
          get size (in kb): du -sk temp
@@ -392,7 +330,7 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
          (this allows us to detect changes in files added or deleted or updated)
          -->
       <property name="dirset" value="*"/>
-      
+
       <dirset id="watch-dirset" dir="${dir.watch}">
          <include name="${dirset}"/>
          <!-- exclude hidden directories such as .xvpics -->
@@ -402,47 +340,43 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
          <dirset refid="watch-dirset"/>
       </resourcecount>
       <echo message="Directories: ${dirsetcount}"/>
-      
+
       <subant inheritall="true" target="db.add-directory" genericantfile="build-subant-targets.xml">
          <dirset refid="watch-dirset"/>
       </subant>
-      
+
       <record action="stop" name="${logfile}"/>
-         
+
    </target>
-   
-   
-   
+
+
+
    <target name="db.find-uploadables">
       <property name="logfile" location="${dir.logs}/find-uploadables-${filename.tstamp}.log"/>
       <record action="start" name="${logfile}"/>
       <echo>Logging to ${logfile}</echo>
-      
+
       <!-- add directories for which there is no bag with an active archive, or for which all bags with 
          active archives have a different hash than the current directory_hash -->
-      
+
       <!-- query has to be:
             - directory where not (bag with same directory_hash and with active archive) -->
 
-      <property name="sql">
-      select d.id, d.directory_hash from directories as d 
-      left join bags as b on d.id = b.directory_id
-      left join archives as a on b.id = a.bag_id and a.state = 'active'
-      where a.bag_id is null;
-      </property>
-      
-      
+      <property name="sql"> select d.id, d.directory_hash from directories as d left join bags as b on d.id = b.directory_id left join archives as a
+         on b.id = a.bag_id and a.state = 'active' where a.bag_id is null; </property>
+
+
       <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
-         password="${db.password}" onerror="continue" output="uploadables.txt" append="false" print="yes" rowcountproperty="rows"
-         showheaders="false" showtrailers="false"> ${sql} </sql>
+         password="${db.password}" onerror="continue" output="uploadables.txt" append="false" print="yes" rowcountproperty="rows" showheaders="false"
+         showtrailers="false"> ${sql} </sql>
       <echo>Rows: ${rows}</echo>
       <loadfile property="results" srcfile="uploadables.txt"/>
       <foreach list="${results}" delimiter="${line.separator}" target="db.add-to-upload-queue" param="line"/>
-      
+
       <record action="stop" name="${logfile}"/>
-         
+
    </target>
-   
+
    <target name="db.add-to-upload-queue">
       <echo>${line}</echo>
       <propertyregex property="directory_id" input="${line}" regexp="(.*)\,.*" select="\1"/>
@@ -453,30 +387,20 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
             <isset property="directory_hash"/>
          </and>
       </condition>
-      <echo>
-         directory_id: ${directory_id}
-         directory_hash: ${directory_hash}
-         go: ${go}
-      </echo>
-      
+      <echo> directory_id: ${directory_id} directory_hash: ${directory_hash} go: ${go} </echo>
+
       <antcall target="db.add-to-upload-queue-sql" inheritall="true"/>
-      
+
    </target>
-   
+
    <target name="db.add-to-upload-queue-sql" if="go">
-      <property name="sql">
-         insert into upload_queue 
-         (directory_id, directory_hash, added)
-         values
-         (${directory_id}, "${directory_hash}", NOW())
-         on duplicate key update
-         directory_hash = values(directory_hash);
-      </property>
+      <property name="sql"> insert into upload_queue (directory_id, directory_hash, added) values (${directory_id}, "${directory_hash}", NOW()) on
+         duplicate key update directory_hash = values(directory_hash); </property>
       <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
          password="${db.password}" onerror="stop" print="true" errorproperty="sql-error"> ${sql} </sql>
-      
+
    </target>
-   
+
    <target name="lock-check">
       <condition property="go">
          <not>
@@ -484,25 +408,17 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
          </not>
       </condition>
    </target>
-   
+
    <target name="db.take-off-upload-queue" depends="lock-check" if="go">
-     <touch file="lock"/>
+      <touch file="lock"/>
       <property name="logfile" location="${dir.logs}/take-off-upload-queue-${filename.tstamp}.log"/>
       <record action="start" name="${logfile}"/>
       <echo>Logging to ${logfile}</echo>
-      
+
       <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
-         password="${db.password}" onerror="continue" output="uploadables.txt" append="false" print="yes" rowcountproperty="rows"
-         showheaders="false" showtrailers="false">  update upload_queue
-         set claimed=NOW(), id=LAST_INSERT_ID(id)
-         where claimed is null
-         order by added
-         limit 1;
-         
-         select q.id, d.path
-         from upload_queue as q, directories as d
-         where q.id = LAST_INSERT_ID()
-         AND q.directory_id = d.id; </sql>
+         password="${db.password}" onerror="continue" output="uploadables.txt" append="false" print="yes" rowcountproperty="rows" showheaders="false"
+         showtrailers="false"> update upload_queue set claimed=NOW(), id=LAST_INSERT_ID(id) where claimed is null order by added limit 1; select q.id,
+         d.path from upload_queue as q, directories as d where q.id = LAST_INSERT_ID() AND q.directory_id = d.id; </sql>
       <echo>Rows: ${rows}</echo>
       <loadfile property="results" srcfile="uploadables.txt"/>
 
@@ -514,35 +430,27 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
             <isset property="path"/>
          </and>
       </condition>
- 
-      <echo>
-         results: ${results}
-         directory_id: ${queue_id}
-         directory_hash: ${path}
-         go: ${go}
-      </echo>
-      
+
+      <echo> results: ${results} directory_id: ${queue_id} directory_hash: ${path} go: ${go} </echo>
+
       <antcall target="db.take-off-upload-queue-run" inheritall="true"/>
-      
+
       <record action="stop" name="${logfile}"/>
-         
+
       <delete file="lock"/>
    </target>
-   
+
    <target name="db.take-off-upload-queue-run" if="go">
       <property name="dir.source" value="${path}"/>
       <propertyregex property="file.tar" input="${dir.source}" regexp=".*\${file.separator}(.*)" select="temp/\1.tar"/>
-      <ant target="run" inheritall="true">
-	<property name="tarfile" value="${file.tar}"/>
-	</ant>
-      
-      <property name="sql">
-         delete from upload_queue
-         where id = ${queue_id};
-      </property>
 
+      <ant target="run" inheritall="true">
+         <property name="tarfile" value="${file.tar}"/>
+      </ant>
+
+      <property name="sql"> delete from upload_queue where id = ${queue_id}; </property>
       <sql classpath="${dir.lib}/mysql-connectocr-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
          password="${db.password}" onerror="continue"> ${sql} </sql>
    </target>
-   
+
 </project>
