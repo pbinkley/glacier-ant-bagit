@@ -67,8 +67,16 @@
       <record action="start" name="${logfile}"/>
       <echo>Logging to ${logfile}</echo>
 
-      <echo> Job ${run.tstamp} Source: ${dir.source} Bag: ${dir.bag} File name: ${tarfile} Region: ${aws.region} Vault: ${aws.vaultName} Kill me now
-         if that's wrong! </echo>
+      <echo xml:space="preserve"> 
+         Job ${run.tstamp} 
+         Source: ${dir.source} 
+         Bag: ${dir.bag} 
+         File name: ${tarfile} 
+         Region: ${aws.region} 
+         Vault: ${aws.vaultName} 
+         
+         Kill me now if that's wrong! 
+      </echo>
       <sleep seconds="15"/>
 
       <antcall target="bagit-create" inheritall="true"/>
@@ -89,8 +97,16 @@
       <!-- remove previous run if any -->
       <delete dir="${dir.bag}"/>
       <mkdir dir="${dir.bag}"/>
-      <echo> Job ${run.tstamp} Source: ${dir.source} Bag: ${dir.bag} File name: ${tarfile} Region: ${aws.region} Vault: ${aws.vaultName} Kill me now
-         if that's wrong! </echo>
+      <echo xml:space="preserve"> 
+         Job ${run.tstamp} 
+         Source: ${dir.source} 
+         Bag: ${dir.bag} 
+         File name: ${tarfile} 
+         Region: ${aws.region} 
+         Vault: ${aws.vaultName} 
+         
+         Kill me now if that's wrong! 
+      </echo>
       <sleep seconds="15"/>
 
       <antcall target="cleanup" inheritall="true"/>
@@ -191,11 +207,16 @@
       <!-- insert directory, in case it doesn't already exist; if it does, update it and get its id -->
 
       <sql driver="${db.driver}" url="${db.url}" userid="${db.user}" password="${db.password}" onerror="stop" print="true" errorproperty="sql-error"
-         classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" showheaders="false"> insert into directories (path, size, directory_hash, added)
-         values ("${dir.source}", ${dir.size}, "${dir.md5}", NOW()) on duplicate key update id=LAST_INSERT_ID(id), size=VALUES(size),
-         directory_hash=VALUES(directory_hash), updated=NOW(); insert into bags (directory_id, directory_hash, manifest, file_name, file_size,
-         file_hash, created) values ( LAST_INSERT_ID(), "${dir.md5}", "${manifestfile}", "${tarfile}", ${file.length}, "${file.sha256}", NOW() ) on
-         duplicate key update id=id; </sql>
+         classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" showheaders="false" xml:space="preserve"> 
+         insert into directories (path, size, directory_hash, added)
+         values ("${dir.source}", ${dir.size}, "${dir.md5}", NOW()) 
+         on duplicate key update id=LAST_INSERT_ID(id), size=VALUES(size),
+         directory_hash=VALUES(directory_hash), updated=NOW(); 
+         
+         insert into bags (directory_id, directory_hash, manifest, file_name, file_size, file_hash, created) 
+         values ( LAST_INSERT_ID(), "${dir.md5}", "${manifestfile}", "${tarfile}", ${file.length}, "${file.sha256}", NOW() ) 
+         on duplicate key update id=id; 
+      </sql>
       <echo>Error? ${sql-error}</echo>
 
    </target>
@@ -289,12 +310,16 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       <!-- we assume bag has been registered -->
       <!--          # look up bag_id based on directory path and hash
          -->
-      <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
-         password="${db.password}" onerror="stop" print="true" errorproperty="sql-error" showheaders="false"> insert into archives (bag_id,
-         archive_id, region, vault, account, created) values ( (select id from bags where directory_id=(select id from directories where
-         path="${dir.source}") and file_hash="${file.sha256}"), "${archiveID}", "${aws.region}", "${aws.vaultName}", "${aws.account}", NOW() ) on
-         duplicate key update id = LAST_INSERT_ID(id); insert into archive_events (archive_id, event_type, start, end, result) values (
-         LAST_INSERT_ID(), "upload", "${start.tstamp}", "${end.tstamp}", "success" ); </sql>
+      <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}" 
+         password="${db.password}" onerror="stop" print="true" errorproperty="sql-error" showheaders="false" xml:space="preserve"> 
+         insert into archives (bag_id, archive_id, region, vault, account, created) 
+         values ( (select id from bags where directory_id=(select id from directories where
+         path="${dir.source}") and file_hash="${file.sha256}"), "${archiveID}", "${aws.region}", "${aws.vaultName}", "${aws.account}", NOW() ) 
+         on duplicate key update id = LAST_INSERT_ID(id); 
+         
+         insert into archive_events (archive_id, event_type, start, end, result) 
+         values (LAST_INSERT_ID(), "upload", "${start.tstamp}", "${end.tstamp}", "success" ); 
+      </sql>
       <echo>Error? ${sql-error}</echo>
 
    </target>
@@ -362,8 +387,11 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       <!-- query has to be:
             - directory where not (bag with same directory_hash and with active archive) -->
 
-      <property name="sql"> select d.id, d.directory_hash from directories as d left join bags as b on d.id = b.directory_id left join archives as a
-         on b.id = a.bag_id and a.state = 'active' where a.bag_id is null; </property>
+      <property name="sql" xml:space="preserve"> 
+         select d.id, d.directory_hash from directories as d 
+         left join bags as b on d.id = b.directory_id 
+         left join archives as a on b.id = a.bag_id and a.state = 'active' where a.bag_id is null; 
+      </property>
 
 
       <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
@@ -387,15 +415,22 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
             <isset property="directory_hash"/>
          </and>
       </condition>
-      <echo> directory_id: ${directory_id} directory_hash: ${directory_hash} go: ${go} </echo>
+      <echo xml:space="preserve"> 
+         directory_id: ${directory_id} 
+         directory_hash: ${directory_hash} 
+         go: ${go} 
+      </echo>
 
       <antcall target="db.add-to-upload-queue-sql" inheritall="true"/>
 
    </target>
 
    <target name="db.add-to-upload-queue-sql" if="go">
-      <property name="sql"> insert into upload_queue (directory_id, directory_hash, added) values (${directory_id}, "${directory_hash}", NOW()) on
-         duplicate key update directory_hash = values(directory_hash); </property>
+      <property name="sql" xml:space="preserve"> 
+         insert into upload_queue (directory_id, directory_hash, added) 
+         values (${directory_id}, "${directory_hash}", NOW()) 
+         on duplicate key update directory_hash = values(directory_hash); 
+      </property>
       <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
          password="${db.password}" onerror="stop" print="true" errorproperty="sql-error"> ${sql} </sql>
 
@@ -417,8 +452,13 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
 
       <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
          password="${db.password}" onerror="continue" output="uploadables.txt" append="false" print="yes" rowcountproperty="rows" showheaders="false"
-         showtrailers="false"> update upload_queue set claimed=NOW(), id=LAST_INSERT_ID(id) where claimed is null order by added limit 1; select q.id,
-         d.path from upload_queue as q, directories as d where q.id = LAST_INSERT_ID() AND q.directory_id = d.id; </sql>
+         showtrailers="false" xml:space="preserve"> 
+         update upload_queue set claimed=NOW(), id=LAST_INSERT_ID(id) 
+         where claimed is null 
+         order by added limit 1; 
+         
+         select q.id, d.path from upload_queue as q, directories as d 
+         where q.id = LAST_INSERT_ID() AND q.directory_id = d.id; </sql>
       <echo>Rows: ${rows}</echo>
       <loadfile property="results" srcfile="uploadables.txt"/>
 
@@ -431,7 +471,12 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
          </and>
       </condition>
 
-      <echo> results: ${results} directory_id: ${queue_id} directory_hash: ${path} go: ${go} </echo>
+      <echo xml:space="preserve"> 
+         results: ${results} 
+         directory_id: ${queue_id} 
+         directory_hash: ${path} 
+         go: ${go} 
+      </echo>
 
       <antcall target="db.take-off-upload-queue-run" inheritall="true"/>
 
