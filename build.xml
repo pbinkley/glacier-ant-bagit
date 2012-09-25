@@ -485,11 +485,10 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
 
    <target name="db.take-off-upload-queue-run" if="go">
       <property name="dir.source" value="${path}"/>
-      <propertyregex property="file.tar" input="${dir.source}" regexp=".*\${file.separator}(.*)" select="${dir.working}/\1.tar"/>
+      <propertyregex property="tarfile" input="${dir.source}" regexp=".*\${file.separator}(.*)" select="${dir.working}/\1.tar"/>
 
-      <ant target="run" inheritall="true">
-         <property name="tarfile" value="${file.tar}"/>
-      </ant>
+      <antcall target="run" inheritall="true">
+      </antcall>
 
       <property name="sql"> delete from upload_queue where id = ${queue_id}; </property>
       <sql classpath="${dir.lib}/mysql-connectocr-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
