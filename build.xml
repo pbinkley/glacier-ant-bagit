@@ -35,6 +35,14 @@
 
    <!-- declare extra tasks -->
    <taskdef resource="net/sf/antcontrib/antlib.xml" classpathref="main.classpath"/>
+   <taskdef 
+      uri="antlib:org.apache.ant.compress"
+      resource="org/apache/ant/compress/antlib.xml">
+      <classpath>
+         <pathelement location="lib/ant-compress-1.2.jar"/>
+         <pathelement location="lib/commons-compress-1.4.jar"/>
+      </classpath>
+   </taskdef>
    
    <target name="init">
       <mkdir dir="${dir.logs.jobs}"/>
@@ -80,7 +88,7 @@
       <antcall target="register-bag" inheritall="true"/>
       <antcall target="glacier-upload" inheritall="true"/>
       
-      <record action="stop" name="${logfile}"
+      <record action="stop" name="${logfile}"/>
    </target>
    
    <target name="test" depends="init">
@@ -163,9 +171,15 @@
    </target>
    
    <target name="tar" depends="init">
+      <!--
       <tar basedir="${dir.bag}" destfile="${tarfile}">
          <include name="**/*"/>
       </tar>
+      -->
+      <comp:tar
+         xmlns:comp="antlib:org.apache.ant.compress" format="pax" destfile="${tarfile}">
+         <fileset dir="${dir.bag}"/>
+      </comp:tar> 
       <checksum file="${tarfile}" property="file.sha256" algorithm="SHA-256"/>
       <echo>${file.sha256}</echo>
    </target>
@@ -393,7 +407,7 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
          <dirset refid="watch-dirset"/>
       </subant>
       
-      <record action="stop" name="${logfile}"
+      <record action="stop" name="${logfile}"/>
          
    </target>
    
@@ -425,7 +439,7 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       <loadfile property="results" srcfile="uploadables.txt"/>
       <foreach list="${results}" delimiter="${line.separator}" target="db.add-to-upload-queue" param="line"/>
       
-      <record action="stop" name="${logfile}"
+      <record action="stop" name="${logfile}"/>
          
    </target>
    
@@ -510,7 +524,7 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       
       <antcall target="db.take-off-upload-queue-run" inheritall="true"/>
       
-      <record action="stop" name="${logfile}"
+      <record action="stop" name="${logfile}"/>
          
       <delete file="lock"/>
    </target>
@@ -518,7 +532,6 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
    <target name="db.take-off-upload-queue-run" if="go">
       <property name="dir.source" value="${path}"/>
       <propertyregex property="file.tar" input="${dir.source}" regexp=".*\${file.separator}(.*)" select="temp/\1.tar"/>
-<echo>file.tar: ${file.tar}</echo> 
       <ant target="run" inheritall="true">
 	<property name="tarfile" value="${file.tar}"/>
 	</ant>
