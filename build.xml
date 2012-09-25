@@ -14,8 +14,6 @@
    <property name="dir.logs.uploads" location="upload-logs"/>
    <property name="dir.temp" location="temp"/>
    <property name="dir.manifests" location="manifests"/>
-   <property name="tarfile" value="${dir.temp}/bag.tar"/>
-   <property name="dir.bag" location="temp/bag"/>
    <property name="dir.lib" location="lib"/>
 
    <property file="build.properties"/>
