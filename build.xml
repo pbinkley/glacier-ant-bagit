@@ -63,7 +63,7 @@
 
    <target name="run" depends="init" if="dir.bag">
       <!-- will not run if dir.bag not set -->
-      <property name="logfile" location="${dir.logs}/run-${filename.tstamp}.log"/>
+      <property name="logfile" location="${dir.logs.jobs}/run-${filename.tstamp}.log"/>
       <record action="start" name="${logfile}"/>
       <echo>Logging to ${logfile}</echo>
 
@@ -318,7 +318,7 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       
       -->
    <target name="db.add-directories">
-      <property name="logfile" location="${dir.logs}/add-directories-${filename.tstamp}.log"/>
+      <property name="logfile" location="${dir.logs.jobs}/add-directories-${filename.tstamp}.log"/>
       <record action="start" name="${logfile}"/>
       <echo>Logging to ${logfile}</echo>
 
@@ -352,7 +352,7 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
 
 
    <target name="db.find-uploadables">
-      <property name="logfile" location="${dir.logs}/find-uploadables-${filename.tstamp}.log"/>
+      <property name="logfile" location="${dir.logs.jobs}/find-uploadables-${filename.tstamp}.log"/>
       <record action="start" name="${logfile}"/>
       <echo>Logging to ${logfile}</echo>
 
@@ -409,14 +409,14 @@ Caused by: Status Code: 403, AWS Service: AmazonGlacier, AWS Request ID: ig_GMi3
       </condition>
    </target>
 
-   <target name="db.take-off-upload-queue" depends="lock-check" if="go">
+   <target name="db.take-off-upload-queue" depends="init,lock-check" if="go">
       <touch file="lock"/>
-      <property name="logfile" location="${dir.logs}/take-off-upload-queue-${filename.tstamp}.log"/>
-      <record action="start" name="${logfile}"/>
+      <property name="logfile" location="${dir.logs.jobs}/take-off-upload-queue-${filename.tstamp}.log"/>
       <echo>Logging to ${logfile}</echo>
+      <record action="start" name="${logfile}"/>
 
       <sql classpath="${dir.lib}/mysql-connector-java-5.1.21-bin.jar" driver="${db.driver}" url="${db.url}" userid="${db.user}"
-         password="${db.password}" onerror="continue" output="uploadables.txt" append="false" print="yes" rowcountproperty="rows" showheaders="false"
+         password="${db.password}" onerror="abort" output="uploadables.txt" append="false" print="yes" rowcountproperty="rows" showheaders="false"
          showtrailers="false"> update upload_queue set claimed=NOW(), id=LAST_INSERT_ID(id) where claimed is null order by added limit 1; select q.id,
          d.path from upload_queue as q, directories as d where q.id = LAST_INSERT_ID() AND q.directory_id = d.id; </sql>
       <echo>Rows: ${rows}</echo>
